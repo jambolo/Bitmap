@@ -1,335 +1,319 @@
-#if !defined(PIXEL_H_INCLUDED)
-#define PIXEL_H_INCLUDED
+#if !defined(BITMAP_PIXEL_H)
+#define BITMAP_PIXEL_H
 
 #pragma once
 
-/*****************************************************************************
-
-                                   Pixel.h
-
-                        Copyright 2001, John J. Bolton
-    ----------------------------------------------------------------------
-
-    $Header: //depot/Libraries/Bitmap/Pixel.h#2 $
-
-    $NoKeywords: $
-
-*****************************************************************************/
+#include <cstdint>
 
 struct ARGB
 {
-    unsigned __int8 m_Alpha;
-    unsigned __int8 m_Red;
-    unsigned __int8 m_Green;
-    unsigned __int8 m_Blue;
+    uint8_t alpha;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
 };
 
 struct RGB
 {
-    unsigned __int8 m_Red;
-    unsigned __int8 m_Green;
-    unsigned __int8 m_Blue;
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
 };
 
 struct BGRA
 {
-    unsigned __int8 m_Blue;
-    unsigned __int8 m_Green;
-    unsigned __int8 m_Red;
-    unsigned __int8 m_Alpha;
+    uint8_t blue;
+    uint8_t green;
+    uint8_t red;
+    uint8_t alpha;
 };
 
 struct BGR
 {
-    unsigned __int8 m_Blue;
-    unsigned __int8 m_Green;
-    unsigned __int8 m_Red;
+    uint8_t blue;
+    uint8_t green;
+    uint8_t red;
 };
 
-typedef unsigned __int8 Pixel8;
+//! 8-bit pixel.
+using Pixel8 = uint8_t;
 
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
+//! 16-bit pixel.
+template <int ALPHA_MASK, int RED_MASK, int GREEN_MASK, int BLUE_MASK,
+          int ALPHA_OFF, int RED_OFF, int GREEN_OFF, int BLUE_OFF>
 class Pixel16
 {
 public:
 
-    Pixel16(float a, float r, float g, float b);
-    Pixel16(unsigned int c);
+    //! Constructor.
+    Pixel16() = default;
 
-    unsigned int    GetRawColor()                   const { return m_Value;               }
-    void            SetRawColor(unsigned int c)           { m_Value = unsigned int(c);  }
+    //! Constructor.
+    Pixel16(float r, float g, float b, float a = 1.0f)
+    {
+        set(r, g, b, a);
+    }
 
-    float   GetAlpha() const;
-    void    SetAlpha(float a);
+    //! Constructor.
+    Pixel16(unsigned c)
+        : value_(uint16_t(c))
+    {
+    }
 
-    float   GetRed() const;
-    void    SetRed(float r);
+    //! Returns the raw pixel value.
+    unsigned raw() const { return value_; }
 
-    float   GetGreen() const;
-    void    SetGreen(float g);
+    //! Sets the pixel value.
+    void set(unsigned c) { value_ = uint16_t(c);  }
 
-    float   GetBlue() const;
-    void    SetBlue(float b);
+    //! Sets the pixel value.
+    void set(float r, float g, float b, float a = 1.0f)
+    {
+        value_ =   (uint16_t(r * RED_MASK + .5f) << RED_OFF)
+                 | (uint16_t(r * GREEN_MASK + .5f) << GREEN_OFF)
+                 | (uint16_t(r * BLUE_MASK + .5f) << BLUE_OFF)
+                 | (uint16_t(r * ALPHA_MASK + .5f) << ALPHA_OFF);
+    }
+
+    //! Returns the red value.
+    float   red() const     { return float((value_ >> RED_OFF) & RED_MASK) / float(RED_MASK); }
+
+    //! Sets the red value.
+    void    setRed(float r) { value_ = (value_ & ~RED_MASK) | (uint16_t(r * RED_MASK + .5f) << RED_OFF); }
+
+    //! Returns the green value.
+    float   green() const     { return float((value_ >> GREEN_OFF) & GREEN_MASK) / float(GREEN_MASK); }
+
+    //! Sets the green value.
+    void    setGreen(float g) { value_ = (value_ & ~GREEN_MASK) | (uint16_t(g * GREEN_MASK + .5f) << GREEN_OFF); }
+
+    //! Returns the blue value.
+    float   blue() const     { return float((value_ >> BLUE_OFF) & BLUE_MASK) / float(BLUE_MASK); }
+
+    //! Sets the blue value.
+    void    setBlue(float b) { value_ = (value_ & ~BLUE_MASK) | (uint16_t(b * BLUE_MASK + .5f) << BLUE_OFF); }
+
+    //! Returns the alpha value, or 0 if not supported.
+    float   alpha() const     { return float((value_ >> ALPHA_OFF) & ALPHA_MASK) / float(ALPHA_MASK); }
+
+    //! Sets the alpha value if it is supported.
+    void    setAlpha(float a) { value_ = (value_ & ~ALPHA_MASK) | (uint16_t(a * ALPHA_MASK + .5f) << ALPHA_OFF); }
 
 private:
 
-    unsigned __int16 m_Value;   // The raw value of the pixel
+    uint16_t value_;   // The raw value of the pixel
 };
 
-//
-// The following two template classes are instantiated in Pixel.cpp. Use the
-// following lines to prevent automatic instantiation in you cpp file.
-//
-//
-//#pragma warning( disable: 4231 )
-//
-//extern template class Pixel16< 0x01, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0 >;
-//extern template class Pixel16< 0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0 >;
-//
+extern template class Pixel16<0, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0>;
+extern template class Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0>;
 
-typedef Pixel16<0x01, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0> Pixel565;
-typedef Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0> Pixel1555;
+//! 16-bit R5G6B5 pixel format.
+using Pixel565 = Pixel16<0, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0>;
 
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-inline Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::Pixel16(unsigned int c)
-    : m_Value(c)
-{
-}
+//! 16-bit A1R5G5B5 pixel format.
+using Pixel1555 = Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0>;
 
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::Pixel16(float a, float r, float g, float b)
-    : m_Value((int((a * _am + .5f)) << _as) |
-              (int((r * _rm + .5f)) << _rs) |
-              (int((g * _gm + .5f)) << _gs) |
-              (int((b * _bm + .5f)) << _bs))
-{
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-float Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::GetAlpha() const
-{
-    return float((m_Value >> _as) & _am) / float(_am);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-void Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::SetAlpha(float a)
-{
-    m_Value = (m_Value & ~_am) | (int((a * _am + .5f)) << _as);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-float Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::GetRed() const
-{
-    return float((m_Value >> _rs) & _rm) / float(_rm);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-void Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::SetRed(float r)
-{
-    m_Value = (m_Value & ~_rm) | (int((r * _rm + .5f)) << _rs);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-float Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::GetGreen() const
-{
-    return float((m_Value >> _gs) & _gm) / float(_gm);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-void Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::SetGreen(float g)
-{
-    m_Value = (m_Value & ~_gm) | (int((g * _gm + .5f)) << _gs);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-float Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::GetBlue() const
-{
-    return float((m_Value >> _bs) & _bm) / float(_bm);
-}
-
-template <int _am, int _rm, int _gm, int _bm, int _as, int _rs, int _gs, int _bs>
-void Pixel16<_am, _rm, _gm, _bm, _as, _rs, _gs, _bs>::SetBlue(float b)
-{
-    m_Value = (m_Value & ~_bm) | (int((b * _bm + .5f)) << _bs);
-}
-
+//! 24-bit pixel.
+template<int RED_OFF, int GREEN_OFF, int BLUE_OFF>
 class Pixel24
 {
-    // Byte ordering (in memory, BGR)
-    enum
-    {
-        _bs = 0,
-        _gs = 1,
-        _rs = 2
-    };
 public:
 
-    Pixel24(float r, float g, float b);
-    Pixel24(unsigned int c);
+    //! Constructor.
+    Pixel24() = default;
 
-    // Set the color of the pixel
-    void SetColor(float r, float g, float b);
+    //! Constructor.
+    Pixel24(float r, float g, float b)
+    {
+        set(r, g, b);
+    }
 
-    // Return the raw value of the pixel
-    unsigned __int32 GetRawColor() const;
+    //! Constructor.
+    Pixel24(unsigned c)
+    {
+        set(c);
+    }
 
-    void SetRawColor(unsigned __int32 c);
+    //! Returns the raw value.
+    unsigned raw() const
+    {
+        return (value_[0] << 16) | (value_[1] <<  8) | (value_[2]);
+    }
 
-    float GetRed() const;
-    void SetRed(float r);
+    //! Sets the value.
+    void set(float r, float g, float b)
+    {
+        setRed(r);
+        setGreen(g);
+        setBlue(b);
+    }
 
-    float GetGreen() const;
-    void SetGreen(float g);
+    //! Sets the value.
+    void set(unsigned c)
+    {
+        value_[0] = uint8_t((c >> 16) & 0xff);
+        value_[1] = uint8_t((c >>  8) & 0xff);
+        value_[2] = uint8_t(c & 0xff);
+    }
 
-    float GetBlue() const;
-    void SetBlue(float b);
+    //! Returns the red value.
+    float red() const
+    {
+        return float(value_[RED_OFF]) / float(0xff);
+    }
+
+    //! Sets the red value.
+    void setRed(float r)
+    {
+        value_[RED_OFF] = uint8_t(r * 0xff + .5f);
+    }
+
+    //! Returns the green value.
+    float green() const
+    {
+        return float(value_[GREEN_OFF]) / float(0xff);
+    }
+
+    //! Sets the green value.
+    void setGreen(float g)
+    {
+        value_[GREEN_OFF] = uint8_t(g * 0xff + .5f);
+    }
+
+    //! Returns the blue value.
+    float blue() const
+    {
+        return float(value_[BLUE_OFF]) / float(0xff);
+    }
+
+    //! Sets the blue value.
+    void setBlue(float b)
+    {
+        value_[BLUE_OFF] = uint8_t(b * 0xff + .5f);
+    }
 
 private:
-    unsigned __int8 m_Value[3];         // Component colors
+    uint8_t value_[3]; // Component colors
 };
 
-inline Pixel24::Pixel24(float r, float g, float b)
-{
-    SetColor(r, g, b);
-}
+// Pre-instantiated common 32-bit formats.
 
-inline Pixel24::Pixel24(unsigned int c)
-{
-    SetRawColor(c);
-}
+//! 32-bit R8G8B8 pixel format.
+using PixelRGB = Pixel24<0, 1, 2>;
+extern template class Pixel24<0, 1, 2>;
 
-// Return the raw value of the pixel
-inline unsigned __int32 Pixel24::GetRawColor() const
-{
-    return (m_Value[0]) |
-           (m_Value[1] <<  8) |
-           (m_Value[2] << 16);
-}
+//! 32-bit B8G8R8 pixel format.
+using PixelBGR = Pixel24<2, 1, 0>;
+extern template class Pixel24<2, 1, 0>;
 
-inline void Pixel24::SetRawColor(unsigned __int32 c)
-{
-    m_Value[0] = unsigned __int8(c);
-    m_Value[1] = unsigned __int8(c >>  8);
-    m_Value[2] = unsigned __int8(c >> 16);
-}
-
-inline float Pixel24::GetRed() const
-{
-    return float(m_Value[_rs]) / float(0xff);
-}
-
-inline void Pixel24::SetRed(float r)
-{
-    m_Value[_rs] = unsigned __int8(r * 0xff + .5f);
-}
-
-inline float Pixel24::GetGreen() const
-{
-    return float(m_Value[_gs]) / float(0xff);
-}
-
-inline void Pixel24::SetGreen(float g)
-{
-    m_Value[_gs] = unsigned __int8(g * 0xff + .5f);
-}
-
-inline float Pixel24::GetBlue() const
-{
-    return float(m_Value[_bs]) / float(0xff);
-}
-
-inline void Pixel24::SetBlue(float b)
-{
-    m_Value[_bs] = unsigned __int8(b * 0xff + .5f);
-}
-
+//! 32-bit pixel.
+template<int ALPHA_OFF, int RED_OFF, int GREEN_OFF, int BLUE_OFF>
 class Pixel32
 {
-    // Byte ordering (in memory, BGRA)
-    enum
-    {
-        _bs = 0,
-        _gs = 1,
-        _rs = 2,
-        _as = 3
-    };
-
 public:
 
-    Pixel32(float a, float r, float g, float b);
-    Pixel32(unsigned __int32 c);
+    Pixel32(float r, float g, float b, float a = 1.0f)
+    {
+        set(r, g, b, a);
+    }
 
-    // Set the color of the pixel
-    void SetColor(float a, float r, float g, float b);
+    Pixel32(uint32_t c)
+    {
+        set(c);
+    }
 
-    // Return the raw value of the pixel
-    unsigned __int32 GetRawColor()          const { return *reinterpret_cast<unsigned __int32 const *>(m_Value);  }
-    void SetRawColor(unsigned __int32 c)          { *reinterpret_cast<unsigned __int32 *>(m_Value) = c;       }
+    //! Returns the value in raw form.
+    uint32_t raw() const
+    {
+        return (value_[0] << 24) | (value_[1] << 16) | (value_[2] << 8) | value_[3];
+    }
+    //! Sets the value.
+    void set(float r, float g, float b, float a = 1.0f)
+    {
+        setRed(r);
+        setGreen(g);
+        setBlue(b);
+        setAlpha(a);
+    }
 
-    float GetAlpha() const;
-    void SetAlpha(float a);
+    //! Sets the value.
+    void set(uint32_t c)
+    {
+        value_[0] = uint8_t((c >> 24) & 0xff);
+        value_[1] = uint8_t((c >> 16) & 0xff);
+        value_[2] = uint8_t((c >>  8) & 0xff);
+        value_[3] = uint8_t(c & 0xff);
+    }
 
-    float GetRed() const;
-    void SetRed(float r);
+    //! Returns the alpha value.
+    float alpha() const
+    {
+        return float(value_[ALPHA_OFF]) / float(0xff);
+    }
 
-    float GetGreen() const;
-    void SetGreen(float g);
+    //! Sets the alpha value.
+    void setAlpha(float a)
+    {
+        value_[ALPHA_OFF] = uint8_t(a * 0xff + .5f);
+    }
 
-    float GetBlue() const;
-    void SetBlue(float b);
+    //! Returns the red value.
+    float red() const
+    {
+        return float(value_[RED_OFF]) / float(0xff);
+    }
+
+    //! Sets the red value.
+    void setRed(float r)
+    {
+        value_[RED_OFF] = uint8_t(r * 0xff + .5f);
+    }
+
+    //! Returns the green value.
+    float green() const
+    {
+        return float(value_[GREEN_OFF]) / float(0xff);
+    }
+
+    //! Sets the green value.
+    void setGreen(float g)
+    {
+        value_[GREEN_OFF] = uint8_t(g * 0xff + .5f);
+    }
+
+    //! Returns the blue value.
+    float blue() const
+    {
+        return float(value_[BLUE_OFF]) / float(0xff);
+    }
+
+    //! Sets the blue value.
+    void setBlue(float b)
+    {
+        value_[BLUE_OFF] = uint8_t(b * 0xff + .5f);
+    }
 
 private:
-    unsigned __int8 m_Value[4];
+    uint8_t value_[4]; // Component colors
 };
 
-inline Pixel32::Pixel32(float a, float r, float g, float b)
-{
-    SetColor(a, r, g, b);
-}
+// Pre-instantiated common 32-bit formats.
 
-inline Pixel32::Pixel32(unsigned __int32 c)
-{
-    SetRawColor(c);
-}
+//! 32-bit A8R8G8B8 pixel format.
+using PixelARGB = Pixel32<0, 1, 2, 3>;
+extern template class Pixel32<0, 1, 2, 3>;
 
-inline float Pixel32::GetAlpha() const
-{
-    return float(m_Value[_as]) / float(0xff);
-}
+//! 32-bit R8G8B8A8 pixel format.
+using PixelRGBA = Pixel32<3, 0, 1, 2>;
+extern template class Pixel32<3, 0, 1, 2>;
 
-inline void Pixel32::SetAlpha(float r)
-{
-    m_Value[_as] = unsigned __int8(r * 0xff + .5f);
-}
+//! 32-bit B8G8R8A8 pixel format.
+using PixelBGRA = Pixel32<3, 2, 1, 0>;
+extern template class Pixel32<3, 2, 1, 0>;
 
-inline float Pixel32::GetRed() const
-{
-    return float(m_Value[_rs]) / float(0xff);
-}
+//! 32-bit A8B8G8R8 pixel format.
+using PixelABGR = Pixel32<0, 3, 2, 1>;
+extern template class Pixel32<0, 3, 2, 1>;
 
-inline void Pixel32::SetRed(float r)
-{
-    m_Value[_rs] = unsigned __int8(r * 0xff + .5f);
-}
+#endif // !defined(BITMAP_PIXEL_H)
 
-inline float Pixel32::GetGreen() const
-{
-    return float(m_Value[_gs]) / float(0xff);
-}
-
-inline void Pixel32::SetGreen(float g)
-{
-    m_Value[_gs] = unsigned __int8(g * 0xff + .5f);
-}
-
-inline float Pixel32::GetBlue() const
-{
-    return float(m_Value[_bs]) / float(0xff);
-}
-
-inline void Pixel32::SetBlue(float b)
-{
-    m_Value[_bs] = unsigned __int8(b * 0xff + .5f);
-}
-
-#endif // !defined( PIXEL_H_INCLUDED )

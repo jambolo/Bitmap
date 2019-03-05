@@ -1,214 +1,107 @@
-#if !defined( PALETTIZEDBITMAP_H_INCLUDED )
-#define PALETTIZEDBITMAP_H_INCLUDED
+#if !defined(BITMAP_PALETTIZEDBITMAP_H)
+#define BITMAP_PALETTIZEDBITMAP_H
 
 #pragma once
-
-/*****************************************************************************
-
-                              PalettizedBitmap.h
-
-						Copyright 2001, John J. Bolton
-	----------------------------------------------------------------------
-
-	$Header: //depot/Libraries/Bitmap/PalettizedBitmap.h#2 $
-
-	$NoKeywords: $
-
-*****************************************************************************/
 
 #include "Bitmap.h"
 #include "Palette.h"
 
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
+template<class Color>
 class PalettizedBitmap : public Bitmap< Pixel8 >
 {
 public:
 
-	typedef Bitmap< Pixel8 >	BaseClass;
-	typedef _Color				Color;
+	using ColorType = Color;
 
-		// Constructors and destructors
+    //! Constructor.
+    PalettizedBitmap() = default;
 
-	PalettizedBitmap( int w = 0, int h = 0 );											// Normal
-	PalettizedBitmap( int w, int h, int p, Pixel * pMap, Palette< Color > const & pal );	// Reference bitmap
-	PalettizedBitmap( PalettizedBitmap const & rval );									// Copy constructor
-	virtual ~PalettizedBitmap();														// Destructor
+    //! Constructor.
+    PalettizedBitmap( int w, int h);
 
-		// Assignment operator
-	PalettizedBitmap& operator=( PalettizedBitmap const & rval ); 
+    //! Constructor.
+    PalettizedBitmap( int w, int h, Palette< Color > const & palette );
 
-		// Load this bitmap from a memory buffer
-	void Import( int w, int h, int p, Pixel const * pMap, Palette< Color > const & pal );
+    //! Constructor.
+    PalettizedBitmap( int w, int h, Pixel * data, Palette< Color > const & palette );
 
-		// Reference a memory buffer through this bitmap
-	void Reference( int w, int h, int p, Pixel * pMap, Palette< Color > const & pal );
+	//! Loads a bitmap
+    void load( int w, int h, Pixel const * data, Palette< Color > const & palette );
 
-		// Returns the palette for this bitmap
-	Palette< Color > const & GetPalette() const { return m_Palette; }
-	Palette< Color >       & GetPalette()       { return m_Palette; }
+	//! References a memory buffer
+	void reference( int w, int h, Pixel * data, Palette< Color > const & palette );
 
-		// Draw a section of this bitmap onto another palettized bitmap
-	void Draw( Rect const & srcRect, PalettizedBitmap * pDst, int dx, int dy ) const;
+	//! Returns the palette
+	Palette< Color > palette() const { return palette_; }
 
-		// Draw a section of this bitmap onto a non-palettized bitmap
-	void Draw( Rect const & srcRect, Bitmap< Color > * pDst, int dx, int dy ) const;
+    //! Returns the palette
+    Palette< Color > & palette()       { return palette_; }
 
+    //! Sets the palette
+    void setPalette(Palette< Color > const & palette) { palette_ = palette; }
+
+    //! Creates a non-palettized bitmap from a region of this bitmap.
+    Bitmap<Color> decompressedRegion(int row, int column, int width, int height, int pitch = 0) const;
 
 private:
 
-	Palette< Color >	m_Palette;	// The palette
+	Palette< Color >	palette_;	// The palette
 };
 
+using Bitmap816 = PalettizedBitmap< Pixel16 >;
+using Bitmap824 = PalettizedBitmap< Pixel24 >;
 
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-typedef PalettizedBitmap< Pixel16 >	Bitmap816;
-typedef PalettizedBitmap< Pixel24 >	Bitmap824;
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-PalettizedBitmap< _Color >::PalettizedBitmap( int w/* = 0*/, int h/* = 0*/ )
+template< class Color >
+PalettizedBitmap< Color >::PalettizedBitmap( int w, int h )
 	: BaseClass( w, h )
 {
 }
 
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-PalettizedBitmap< _Color >::PalettizedBitmap( int w, int h, int p, Pixel * pMap, Palette< Color > const & pal )
-	: BaseClass( w, h, p, pMap ),
-	  m_Palette( pal )
+template< class Color >
+PalettizedBitmap< Color >::PalettizedBitmap( int w, int h, Palette< Color > const & palette )
+    : BaseClass( w, h )
+    , palette_( palette )
 {
+}
+
+template< class Color >
+PalettizedBitmap< Color >::PalettizedBitmap( int w, int h, Pixel * data, Palette< Color > const & palette )
+	: BaseClass( w, h, 0, data )
+    , palette_( palette )
+{
+}
+
+template< class Color >
+void PalettizedBitmap< Color >::load( int w, int h, Pixel const * data, Palette< Color > const & palette )
+{
+	BaseClass::load( w, h, 0, data );
+	palette_ = palette;
+}
+
+template< class Color >
+void PalettizedBitmap< Color >::reference( int w, int h, Pixel * data, Palette< Color > const & palette )
+{
+	BaseClass::reference( w, h, 0, data );
+	palette_ = palette;
+}
+
+template< class Color >
+Bitmap< Color > PalettizedBitmap< Color >::region(int row, int column, int width, int height, int pitch) const
+{
+    Bitmap<Color> region(width, height, pitch);
+    Pixel8 const * src = data(row, column);
+    Color * dst = region.data();
+    for (int i = 0; i < height; ++i)
+    {
+        for (int j = 0; j < width; ++j)
+        {
+            dst[j] = palette_[src[j]];
+        }
+        dst = reinterpret_cast<Color *>(reinterpret_cast<char *>(dst) + region.pitch());
+        src += width_;
+    }
 }
 
 
 
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-PalettizedBitmap< _Color >::PalettizedBitmap( PalettizedBitmap< _Color > const & rval )
-	: BaseClass( rval ),
-	  m_Palette( rval.m_Palette )
-{
-}
-
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-PalettizedBitmap< _Color >& PalettizedBitmap< _Color >::operator=( PalettizedBitmap< _Color > const & rval )
-{
-	if ( this == &rval )
-		return *this;
-
-	BaseClass::operator=( rval );
-
-	m_Palette = rval.m_Palette;
-
-	return *this;
-}
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-void PalettizedBitmap< _Color >::Import( int w, int h, int p, Pixel const * pMap, Palette< _Color > const & pal )
-{
-	BaseClass::Import( w, h, p, pMap );
-	m_Palette = pal;
-}
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-void PalettizedBitmap< _Color >::Reference( int w, int h, int p, Pixel* pMap, Palette< _Color > const & pal )
-{
-	BaseClass::Reference( w, h, p, pMap );
-	m_Palette = pal;
-}
-
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-inline void PalettizedBitmap< _Color >::Draw( Rect const & srcRect, PalettizedBitmap * pDst, int dx, int dy ) const
-{
-	BaseClass::Draw( srcRect, pDst, dx, dy );
-}
-
-
-/********************************************************************************************************************/
-/*																													*/
-/*																													*/
-/********************************************************************************************************************/
-
-template< class _Color >
-void PalettizedBitmap< _Color >::Draw( Rect const & srcRect, Bitmap< Color > * pDst, int dx, int dy ) const
-{
-	Rect	rect	= srcRect;
-
-	ClipForDrawing( &rect, &dx, &dy, dst->Getm_Width(), dst->GetHeight() );
-
-	if ( rect.m_Width <= 0 || rect.m_Height <= 0 )
-		return;
-
-	Color *			dstp	= pDst->GetMap( dx, dy );
-	Pixel const *	srcp	= GetMap( rect.m_X, rect.m_Y );
-	const int		dpitch	= pDst->GetPitch();
-
-	for ( int i = 0; i < rect.m_Height; i++ )
-	{
-		_Color *      d = dstp;
-		Pixel const * s = srcp;
-
-		for ( int j = 0; j < rect.m_Width; j++ )
-		{
-			*d = m_Palette[ *s ];
-			++d;
-			++s;
-		}
-
-		dstp = reinterpret_cast< Color *       >( reinterpret_cast< char *       >( dstp ) + dpitch );
-		srcp = reinterpret_cast< Pixel const * >( reinterpret_cast< char const * >( srcp ) + m_Pitch );
-	}
-}
-
-
-
-#endif // !defined( PALETTIZEDBITMAP_H_INCLUDED )
+#endif // !defined(BITMAP_PALETTIZEDBITMAP_H)

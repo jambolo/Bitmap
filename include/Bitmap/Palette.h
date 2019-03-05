@@ -1,75 +1,63 @@
-#if !defined(PALETTE_H_INCLUDED)
-#define PALETTE_H_INCLUDED
+#if !defined(BITMAP_PALETTE_H)
+#define BITMAP_PALETTE_H
 
 #pragma once
 
-/*****************************************************************************
-
-                                  Palette.h
-
-                        Copyright 2001, John J. Bolton
-    ----------------------------------------------------------------------
-
-    $Header: //depot/Libraries/Bitmap/Palette.h#2 $
-
-    $NoKeywords: $
-
-*****************************************************************************/
-
 #include "Pixel.h"
 
-#include "..\Misc\Etc.h"
-#include <Cstring>
-
-template <class _Entry>
+template <class Entry>
 class Palette
 {
 public:
 
-    typedef _Entry Entry;
+    //! Type of Entry template parameter
+    using EntryType = Entry;
 
-    enum
-    {
-        NUM_PALETTE_ENTRIES = 256,                  // Number of entries in a palette
-        ENTRY_SIZE          = sizeof(Entry)         // Number of bytes in each palette entry
-    };
+    static size_t constexpr PALETTE_SIZE = 256;     //!< Number of entries in a palette
+    static size_t constexpr ENTRY_SIZE = sizeof(Entry); //!< Size of a palette entry
 
-    // Constructors and destructors
+    //! Constructor.
+    Palette() = default;
 
-    Palette() {}
+    //! Constructor.
     Palette(Entry const * pData)
     {
-        memcpy(m_Data, pData, sizeof m_Data);
+        memcpy(entries_, pData, sizeof entries_);
     }
 
-    // Returns a pointer to the palette data
-    Entry const * GetData() const { return m_Data; }
-    Entry       * GetData()       { return m_Data; }
+    //! Returns a pointer to the palette data
+    Entry const * entries() const { return entries_; }
 
-    // Overrides [] as a convenience so that the class can be accessed
-    // as an array instead of referencing 'm_Data'.
+    //! Returns a pointer to the palette data
+    Entry       * entries()       { return entries_; }
+
+    // Operator []
     Entry & operator [](int entry)
     {
-        assert_limits(0, entry, NUM_PALETTE_ENTRIES - 1);
-        return m_Data[entry];
+        assert_limits(0, entry, PALETTE_SIZE - 1);
+        return entries_[entry];
     }
 
-    Entry const & operator [](int entry) const
+    Entry operator [](int entry) const
     {
-        assert_limits(0, entry, NUM_PALETTE_ENTRIES - 1);
-        return m_Data[entry];
+        assert_limits(0, entry, PALETTE_SIZE - 1);
+        return entries_[entry];
     }
 
 private:
 
-    Entry m_Data[NUM_PALETTE_ENTRIES];      // Palette data
+    Entry entries_[PALETTE_SIZE];      // Palette data
 };
 
 // Types defined for convenience
 
-typedef Palette<Pixel1555>    Palette1555;
-typedef Palette<Pixel1555>    Palette565;
-typedef Palette<Pixel24>      Palette24;
-typedef Palette<Pixel32>      Palette32;
+using Palette1555 = Palette<Pixel1555>;
+using Palette565 = Palette<Pixel1555>;
+using PaletteRGB = Palette<PixelRGB>;
+using PaletteBGR = Palette<PixelBGR>;
+using PaletteARGB = Palette<PixelARGB>;
+using PaletteRGBA = Palette<PixelRGBA>;
+using PaletteBGRA = Palette<PixelBGRA>;
+using PaletteABGR = Palette<PixelABGR>;
 
-#endif // !defined( PALETTE_H_INCLUDED )
+#endif // !defined(BITMAP_PALETTE_H)

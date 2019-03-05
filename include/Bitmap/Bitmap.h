@@ -1,341 +1,343 @@
-#if !defined(BITMAP_H_INCLUDED)
-#define BITMAP_H_INCLUDED
+#if !defined(BITMAP_BITMAP_H)
+#define BITMAP_BITMAP_H
 
 #pragma once
 
-/*****************************************************************************
+#include "Bitmap/Palette.h"
+#include "Bitmap/Pixel.h"
+#include "Rect/Rect.h"
 
-                                   Bitmap.h
-
-                        Copyright 2001, John J. Bolton
-    ----------------------------------------------------------------------
-
-    $Header: //depot/Libraries/Bitmap/Bitmap.h#2 $
-
-    $NoKeywords: $
-
-*****************************************************************************/
-
-#include "Pixel.h"
-
-#include <Cstring>
-#include <new>
-
-#include "../Rect/Rect.h"
-#include "Palette.h"
-
-// Forward declarations
-
-template <class _Pixel>
+template <typename Pixel>
 class Bitmap
 {
 public:
 
-    typedef _Pixel Pixel;
+    //! Pixel type.
+    using PixelType = Pixel;
+    
+    //! Size of a pixel in bytes
+    static size_t constexpr PIXEL_SIZE = sizeof(Pixel);
 
-    enum { PIXEL_SIZE = sizeof Pixel };
+    //! Constructor.
+    Bitmap() = default;
 
-    // Constructors and destructors
+    //! Constructor.
+    Bitmap(int w, int h, int p = 0);
 
-    Bitmap(int w = 0, int h = 0);               // Normal
-    Bitmap(int w, int h, int p, Pixel * pMap);      // Reference bitmap
-    Bitmap(Bitmap const & rval);                // Copy constructor
-    virtual ~Bitmap();                          // Destructor
+    //! Constructor.
+    Bitmap(int w, int h, int p, Pixel * data);
 
-    // Assignment operator
-    Bitmap & operator =(Bitmap const & rval);
+    //! Copy constructor.
+    Bitmap(Bitmap const & rhs);
 
-    // Load this bitmap from a memory buffer
-    void Import(int w, int h, int p, Pixel const * pMap);
+    //! Move constructor.
+    Bitmap(Bitmap && rhs);
 
-    // Reference a memory buffer through this bitmap
-    void Reference(int w, int h, int p, Pixel * pMap);
+    //! Destructor.
+    virtual ~Bitmap();
 
-    // Draw a section of this bitmap onto another
-    void Draw(Rect const & srcRect, Bitmap * pDst, int pDx, int pDy) const;
+    //! Assignment operator
+    Bitmap & operator =(Bitmap const & rhs);
 
-    // Returns a pointer to the pixel at (x, y)
-    Pixel const * GetMap(int x = 0, int y = 0) const { return _GetMap(x, y); }
-    Pixel       * GetMap(int x = 0, int y = 0)        { return const_cast<Pixel *>(_GetMap(x, y)); }
+    //! Move assignment operator
+    Bitmap & operator =(Bitmap && rhs);
 
-    // Returns the width of the bitmap (in pixels)
-    int GetWidth() const { return m_Width; }
+    //! Loads an image
+    void load(int w, int h, int p, Pixel const * data);
 
-    // Returns the height of the bitmap (in pixels)
-    int GetHeight() const { return m_Height; }
+    //! References an image
+    void reference(int w, int h, int p, Pixel * data);
 
-    // Returns the pitch of the bitmap (in bytes)
-    int GetPitch() const { return m_Pitch; }
+    //! Returns the pixel at (row, column)
+    Pixel pixel(int row, int column) const { return *addressOf(row, column); }
+
+    //! Returns a pointer to the pixel at (row, column).
+    Pixel const * data(int row = 0, int column = 0) const { return addressOf(row, column); }
+
+    //! Returns a pointer to the pixel at (row, column).
+    Pixel       * data(int row = 0, int column = 0)       { return const_cast<Pixel *>(addressOf(row, column)); }
+
+    //! Returns the width of the bitmap (in pixels).
+    int width() const { return width_; }
+
+    //! Returns the height of the bitmap (in pixels).
+    int height() const { return height_; }
+
+    //! Returns the pitch of the bitmap (in bytes).
+    int pitch() const { return pitch_; }
+
+    //! Creates a bitmap from a region of this bitmap.
+    Bitmap region(int row, int column, int width, int height) const;
+
+    //! Copies a section of another bitmap into this bitmap
+    void copy(Bitmap const & src, Rect const & srcRect, int dstC, int dstR);
 
 protected:
 
-    // Clips a rect so that the rect lies entirely within both the source and
-    // dest bitmaps. If the source m_X or m_Y changes then so must the destinaion m_X or m_Y.
-    void ClipForDrawing(Rect * srcRect, int * pDx, int * pDy, int dw, int dh) const;
-
-    int m_Width;                // m_Width in pixels
-    int m_Height;               // m_Height
-    int m_Pitch;                // m_Pitch (in bytes)
-
-    Pixel * m_Map;              // Bitmap image data
+    int width_   = 0;       //!< Width (in pixels)
+    int height_  = 0;       //!< Height (in pixels)
+    int pitch_   = 0;       //!< Pitch (in bytes)
+    bool referenced_ = false; //!< If true, then this bitmap does not "own" the image data
+    Pixel * data_ = nullptr; //!< Bitmap image data
 
 private:
 
-    // Returns a pointer to the pixel at (x,y)
-    Pixel const * _GetMap(int x, int y) const;
+    // Clips a rect so that it lies entirely within both the source and dest bitmaps.
+    void clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, int * dstC) const;
 
-    // If true then this bitmap does not "own" the image data and should
-    // not delete it.
-    bool m_IsAReference;
+   // Returns a pointer to the pixel at (row,column)
+    Pixel const * addressOf(int row, int column) const;
+
+    // Creates a copy of image data
+    static Pixel * createCopy(int pitch, int height, Pixel const * data);
 };
 
-template <class _Pixel>
-Bitmap<_Pixel>::Bitmap(int w /*= 0*/, int h /*= 0*/)
-    : m_IsAReference(false)
+template <class Pixel>
+Bitmap<Pixel>::Bitmap(int w, int h, int p /*= 0*/)
+    : width_(w)
+    , height_(h)
+    , pitch_((p > 0) ? p : w * PIXEL_SIZE)
+    , referenced_(true)
+    , data_(reinterpret_cast<Pixel *>(new char[pitch_ * height_]))
 {
-    assert(w >= 0);
-    assert(h >= 0);
-
-    if (w != 0 && h != 0)
-    {
-        m_Width  = w;
-        m_Height = h;
-        m_Pitch  = w * PIXEL_SIZE;
-        m_Map    = new Pixel[w * h];
-        if (!m_Map)
-            throw std::bad_alloc();
-    }
-    else
-    {
-        m_Width  = 0;
-        m_Height = 0;
-        m_Pitch  = 0;
-        m_Map    = 0;
-    }
-}
-
-template <class _Pixel>
-Bitmap<_Pixel>::Bitmap(int w, int h, int p, Pixel * pMap)
-    : m_Width(w),
-    m_Height(h),
-    m_Pitch(p),
-    m_Map(pMap),
-    m_IsAReference(true)
-{
-    assert(pMap);
     assert(w > 0);
     assert(h > 0);
-    assert(p >= w * sizeof(Pixel));
+    assert(p == 0 || p >= w * PIXEL_SIZE);
+    assert(p % PIXEL_SIZE == 0);
 }
 
-template <class _Pixel>
-Bitmap<_Pixel>::Bitmap(Bitmap const & rval)
+template <class Pixel>
+Bitmap<Pixel>::Bitmap(int w, int h, int p, Pixel * data)
+    : width_(w)
+    , height_(h)
+    , pitch_((p > 0) ? p : w * PIXEL_SIZE)
+    , referenced_(true)
+    , data_(data)
 {
-    m_Width        = rval.m_Width;
-    m_Height       = rval.m_Height;
-    m_Pitch        = rval.m_Pitch;
-    m_IsAReference = rval.m_IsAReference;
+    assert(w > 0);
+    assert(h > 0);
+    assert(p == 0 || p >= w * PIXEL_SIZE);
+    assert(data);
+    assert(p % PIXEL_SIZE == 0);
+}
 
-    if (m_IsAReference)
-    {
-        m_Map = rval.m_Map;
-    }
+template <class Pixel>
+Bitmap<Pixel>::Bitmap(Bitmap const & rhs)
+    : width_(rhs.width_)
+    , height_(rhs.height_)
+    , pitch_(rhs.pitch_)
+    , referenced_(rhs.referenced_)
+{
+    if (referenced_)
+        data_ = rhs.data_;
+    else if (pitch_ > 0 && height_ > 0)
+        data_ = createCopy(rhs.data_, pitch_, height_);
     else
-    {
-        if (m_Width != 0 && m_Height != 0)
-        {
-            m_Map = reinterpret_cast<Pixel *>(new char[m_Pitch * m_Height]);
-            if (!m_Map)
-                throw std::bad_alloc();
-
-            memcpy(m_Map, rval.m_Map, m_Pitch * m_Height);
-        }
-        else
-        {
-            m_Map = 0;
-        }
-    }
+        data_ = nullptr;
 }
 
-template <class _Pixel>
-Bitmap<_Pixel> & Bitmap<_Pixel>::operator =(Bitmap const & rval)
+template <class Pixel>
+Bitmap<Pixel>::Bitmap(Bitmap && rhs)
+    : width_(rhs.width_)
+    , height_(rhs.height_)
+    , pitch_(rhs.pitch_)
+    , referenced_(rhs.referenced_)
+    , data_(rhs.data_)
 {
-    if (this == &rval)
+    rhs.referenced_ = true;
+}
+
+template <class Pixel>
+Bitmap<Pixel>::~Bitmap()
+{
+    if (!referenced_ && data_)
+        delete[] data_;
+}
+
+template <class Pixel>
+Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap const & rhs)
+{
+    if (this == &rhs)
         return *this;
 
-    if (!m_IsAReference && m_Map)
-        delete[] m_Map;
+    if (!referenced_ && data_)
+        delete[] data_;
 
-    m_Width        = rval.m_Width;
-    m_Height       = rval.m_Height;
-    m_Pitch        = rval.m_Pitch;
-    m_IsAReference = rval.m_IsAReference;
-
-    if (m_IsAReference)
-    {
-        m_Map = rval.m_Map;
-    }
+    width_      = rhs.width_;
+    height_     = rhs.height_;
+    pitch_      = rhs.pitch_;
+    referenced_ = rhs.referenced_;
+    if (referenced_)
+        data_ = rhs.data_;
+    else if (pitch_ > 0 && height_ > 0)
+        data_ = createCopy(rhs.data_, pitch_, height_);
     else
-    {
-        if (m_Width != 0 && m_Height != 0)
-        {
-            m_Map = reinterpret_cast<Pixel *>(new char[m_Pitch * m_Height]);
-            if (!m_Map)
-                throw std::bad_alloc();
-
-            memcpy(m_Map, rval.m_Map, m_Pitch * m_Height);
-        }
-        else
-        {
-            m_Map = 0;
-        }
-    }
+        data_ = nullptr;
 
     return *this;
 }
 
-template <class _Pixel>
-Bitmap<_Pixel>::~Bitmap()
+template <class Pixel>
+Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap && rhs)
 {
-    if (!m_IsAReference && m_Map)
-        delete[] m_Map;
+    if (this == &rhs)
+        return *this;
+
+    if (!referenced_ && data_)
+        delete[] data_;
+
+    width_      = rhs.width_;
+    height_     = rhs.height_;
+    pitch_      = rhs.pitch_;
+    referenced_ = rhs.referenced_;
+    data_        = rhs.data_;
+
+    if (!rhs.referenced_)
+        rhs.data_ = nullptr;
+
+    return *this;
 }
 
-template <class _Pixel>
-void Bitmap<_Pixel>::Import(int w, int h, int p, Pixel const * pMap)
+template <class Pixel>
+void Bitmap<Pixel>::load(int w, int h, int p, Pixel const * data)
 {
-    assert(pMap);
     assert(w > 0);
     assert(h > 0);
-    assert(p >= w * sizeof(Pixel));
+    assert(p == 0 || p >= w * PIXEL_SIZE);
+    assert(data);
 
-    if (!m_IsAReference && m_Map)
-        delete[] m_Map;
+    if (!referenced_ && data_)
+        delete[] data_;
 
-    m_Width        = w;
-    m_Height       = h;
-    m_Pitch        = p;
-    m_IsAReference = false;
-
-    m_Map = reinterpret_cast<Pixel *>(new char[p * h]);
-    if (!m_Map)
-        throw std::bad_alloc();
-
-    memcpy(m_Map, pMap, p * h);
+    width_      = w;
+    height_     = h;
+    pitch_      = (p > 0) ? p : w * PIXEL_SIZE;
+    referenced_ = false;
+    data_ = createCopy(data, p, h);
 }
 
-template <class _Pixel>
-void Bitmap<_Pixel>::Reference(int w, int h, int p, Pixel * pMap)
+template <class Pixel>
+void Bitmap<Pixel>::reference(int w, int h, int p, Pixel * data)
 {
-    assert(pMap);
+    assert(data);
     assert(w > 0);
     assert(h > 0);
-    assert(p >= w * sizeof(Pixel));
+    assert(p == 0 || p >= w * PIXEL_SIZE);
 
-    if (!m_IsAReference && m_Map)
-        delete[] m_Map;
+    if (!referenced_ && data_)
+        delete[] data_;
 
-    m_Width        = w;
-    m_Height       = h;
-    m_Pitch        = p;
-    m_Map          = pMap;
-    m_IsAReference = true;
+    width_ = w;
+    height_ = h;
+    pitch_ = (p > 0) ? p : w * PIXEL_SIZE;
+    referenced_ = true;
+    data_ = data;
 }
 
-template <class _Pixel>
-inline Bitmap<_Pixel>::Pixel const * Bitmap<_Pixel>::_GetMap(int x, int y) const
+template <class Pixel>
+Bitmap<Pixel> Bitmap<Pixel>::region(int row, int column, int width, int height, int pitch = 0) const
 {
-    return reinterpret_cast<Pixel *>(reinterpret_cast<char *>(m_Map) + y * m_Pitch) + x;
+    Bitmap<Pixel> region(width, height, pitch);
+    Rect srcRect(column, row, width, height);
+    region.copy(*this, srcRect, 0, 0);
+    return region;
 }
 
-template <class _Pixel>
-void Bitmap<_Pixel>::Draw(Rect const & srcRect, Bitmap * pDst, int pDx, int pDy) const
+template <class Pixel>
+void Bitmap<Pixel>::copy(Bitmap const & src, Rect const & srcRect, int dstR, int dstC)
 {
     Rect rect = srcRect;
+    clipToFit(&rect, width_, height_, &dstR, &dstC);
 
-    ClipForDrawing(&rect, &pDx, &pDy, pDst->GetWidth(), pDst->GetHeight());
-
-    if (rect.m_Width <= 0 || rect.m_Height <= 0)
+    if (rect.width <= 0 || rect.height <= 0)
         return;
 
-    Pixel * dstp       = pDst->GetMap(pDx, pDy);
-    Pixel const * srcp = GetMap(rect.m_X, rect.m_Y);
-    int const dpitch   = pDst->GetPitch();
-
-    for (int i = 0; i < rect.m_Height; i++)
+    int srcR = rect.row;
+    int srcC = rect.column;
+    for (int i = 0; i < rect.height; ++i)
     {
-        memcpy(dstp, srcp, rect.m_Width * PIXEL_SIZE);
-
-        dstp = reinterpret_cast<Pixel *>(reinterpret_cast<char *>(dstp) + dpitch);
-        srcp = reinterpret_cast<Pixel const *>(reinterpret_cast<char const *>(srcp) + m_Pitch);
+        Pixel * d       = const_cast<Pixel *>(addressOf(dstR, dstC));
+        Pixel const * s = src.data(srcR, srcC);
+        memcpy(d, s, rect.width * PIXEL_SIZE);
+        ++srcR;
+        ++dstR;
     }
 }
 
-template <class _Pixel>
-void Bitmap<_Pixel>::ClipForDrawing(Rect * srcRect, int * pDx, int * pDy, int dw, int dh) const
+//!
+//! @note   If the source x or y changes then so must the destinaion x or y.
+template <class Pixel>
+void Bitmap<Pixel>::clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, int * dstC) const
 {
+    Rect rect = *srcRect;
+    int dc = *dstC;
+    int dr = *dstR;
+
     // Clip to source bitmap
 
-    if (srcRect->m_X < 0)
+    if (rect.x < 0)
     {
-        srcRect->m_Width += srcRect->m_X;
-        pDx -= srcRect->m_X;
-        srcRect->m_X      = 0;
+        rect.width += rect.x;
+        dc -= rect.x;
+        rect.x = 0;
     }
 
-    if (srcRect->m_Y < 0)
+    if (rect.y < 0)
     {
-        srcRect->m_Height += srcRect->m_Y;
-        pDy -= srcRect->m_Y;
-        srcRect->m_Y       = 0;
+        rect.height += rect.y;
+        dr -= rect.y;
+        rect.y = 0;
     }
 
-    if (srcRect->m_Width > m_Width - srcRect->m_X)
+    if (rect.width > srcW - rect.x)
+        rect.width = srcW - rect.x;
+
+    if (rect.height > srcH - rect.y)
+        rect.height = srcH - rect.y;
+
+    // Clip to this bitmap
+
+    if (dc < 0)
     {
-        srcRect->m_Width = m_Width - srcRect->m_X;
+        rect.width_ += dc;
+        rect.x -= dc;
+        dc = 0;
     }
 
-    if (srcRect->m_Height > m_Height - srcRect->m_Y)
+    if (dr < 0)
     {
-        srcRect->m_Height = m_Height - srcRect->m_Y;
+        rect.height_ += dr;
+        rect.y -= dr;
+        dr = 0;
     }
 
-    // Clip to dest bitmap
+    if (rect.width > width_ - dc)
+        rect.width = width_ - dc;
 
-    int ldx = *pDx;
-    int ldy = *pDy;
+    if (rect.height > height_ - dr)
+        rect.height = height_ - dr;
 
-    if (ldx < 0)
-    {
-        srcRect->m_Width += ldx;
-        srcRect->m_X     -= ldx;
-        ldx = 0;
-    }
-
-    if (ldy < 0)
-    {
-        srcRect->m_Height += ldy;
-        srcRect->m_X      -= ldy;
-        ldy = 0;
-    }
-
-    *pDx = ldx;
-    *pDy = ldy;
-
-    if (srcRect->m_Width > dw - ldx)
-    {
-        srcRect->m_Width = dw - ldx;
-    }
-
-    if (srcRect->m_Height > dh - ldy)
-    {
-        srcRect->m_Height = dh - ldy;
-    }
+    *srcRect = rect;
+    *dstC = dc;
+    *dstR = dr;
 }
 
-typedef Bitmap<Pixel8> Bitmap8;
-typedef Bitmap<Pixel16> Bitmap16;
-typedef Bitmap<Pixel24> Bitmap24;
-typedef Bitmap<Pixel32> Bitmap32;
+template <class Pixel>
+Pixel const * Bitmap<Pixel>::addressOf(int row, int column) const
+{
+    return reinterpret_cast<Pixel const *>(reinterpret_cast<char const *>(data_) + row * pitch_) + column;
+}
 
-#endif // !defined( BITMAP_H_INCLUDED )
+template <class Pixel>
+Pixel * Bitmap<Pixel>::createCopy(Pixel * data, int pitch, int height)
+{
+    Pixel * copy = reinterpret_cast<Pixel *>(new char[pitch * height]);
+    memcpy(copy, data, pitch * height);
+}
+
+using Bitmap8 = Bitmap<Pixel8>;
+using Bitmap16 = Bitmap<Pixel16>;
+using Bitmap24 = Bitmap<Pixel24>;
+using Bitmap32 = Bitmap<Pixel32>;
+
+#endif // !defined(BITMAP_BITMAP_H)
