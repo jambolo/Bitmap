@@ -14,7 +14,7 @@ public:
     using EntryType = Entry;
 
     static size_t constexpr PALETTE_SIZE = 256;     //!< Number of entries in a palette
-    static size_t constexpr ENTRY_SIZE = sizeof(Entry); //!< Size of a palette entry
+    static size_t constexpr ENTRY_SIZE   = sizeof(Entry); //!< Size of a palette entry
 
     //! Constructor.
     Palette() = default;
@@ -29,7 +29,7 @@ public:
     Entry const * entries() const { return entries_; }
 
     //! Returns a pointer to the palette data
-    Entry       * entries()       { return entries_; }
+    Entry * entries() { return entries_; }
 
     // Operator []
     Entry & operator [](int entry)
@@ -52,9 +52,9 @@ private:
 // Types defined for convenience
 
 using Palette1555 = Palette<Pixel1555>;
-using Palette565 = Palette<Pixel1555>;
-using PaletteRGB = Palette<PixelRGB>;
-using PaletteBGR = Palette<PixelBGR>;
+using Palette565  = Palette<Pixel1555>;
+using PaletteRGB  = Palette<PixelRGB>;
+using PaletteBGR  = Palette<PixelBGR>;
 using PaletteARGB = Palette<PixelARGB>;
 using PaletteRGBA = Palette<PixelRGBA>;
 using PaletteBGRA = Palette<PixelBGRA>;

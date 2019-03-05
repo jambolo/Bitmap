@@ -76,28 +76,28 @@ public:
     }
 
     //! Returns the red value.
-    float   red() const     { return float((value_ >> RED_OFF) & RED_MASK) / float(RED_MASK); }
+    float red() const { return float((value_ >> RED_OFF) & RED_MASK) / float(RED_MASK); }
 
     //! Sets the red value.
-    void    setRed(float r) { value_ = (value_ & ~RED_MASK) | (uint16_t(r * RED_MASK + .5f) << RED_OFF); }
+    void setRed(float r) { value_ = (value_ & ~RED_MASK) | (uint16_t(r * RED_MASK + .5f) << RED_OFF); }
 
     //! Returns the green value.
-    float   green() const     { return float((value_ >> GREEN_OFF) & GREEN_MASK) / float(GREEN_MASK); }
+    float green() const { return float((value_ >> GREEN_OFF) & GREEN_MASK) / float(GREEN_MASK); }
 
     //! Sets the green value.
-    void    setGreen(float g) { value_ = (value_ & ~GREEN_MASK) | (uint16_t(g * GREEN_MASK + .5f) << GREEN_OFF); }
+    void setGreen(float g) { value_ = (value_ & ~GREEN_MASK) | (uint16_t(g * GREEN_MASK + .5f) << GREEN_OFF); }
 
     //! Returns the blue value.
-    float   blue() const     { return float((value_ >> BLUE_OFF) & BLUE_MASK) / float(BLUE_MASK); }
+    float blue() const { return float((value_ >> BLUE_OFF) & BLUE_MASK) / float(BLUE_MASK); }
 
     //! Sets the blue value.
-    void    setBlue(float b) { value_ = (value_ & ~BLUE_MASK) | (uint16_t(b * BLUE_MASK + .5f) << BLUE_OFF); }
+    void setBlue(float b) { value_ = (value_ & ~BLUE_MASK) | (uint16_t(b * BLUE_MASK + .5f) << BLUE_OFF); }
 
     //! Returns the alpha value, or 0 if not supported.
-    float   alpha() const     { return float((value_ >> ALPHA_OFF) & ALPHA_MASK) / float(ALPHA_MASK); }
+    float alpha() const { return float((value_ >> ALPHA_OFF) & ALPHA_MASK) / float(ALPHA_MASK); }
 
     //! Sets the alpha value if it is supported.
-    void    setAlpha(float a) { value_ = (value_ & ~ALPHA_MASK) | (uint16_t(a * ALPHA_MASK + .5f) << ALPHA_OFF); }
+    void setAlpha(float a) { value_ = (value_ & ~ALPHA_MASK) | (uint16_t(a * ALPHA_MASK + .5f) << ALPHA_OFF); }
 
 private:
 
@@ -114,7 +114,7 @@ using Pixel565 = Pixel16<0, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0>;
 using Pixel1555 = Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0>;
 
 //! 24-bit pixel.
-template<int RED_OFF, int GREEN_OFF, int BLUE_OFF>
+template <int RED_OFF, int GREEN_OFF, int BLUE_OFF>
 class Pixel24
 {
 public:
@@ -207,7 +207,7 @@ using PixelBGR = Pixel24<2, 1, 0>;
 extern template class Pixel24<2, 1, 0>;
 
 //! 32-bit pixel.
-template<int ALPHA_OFF, int RED_OFF, int GREEN_OFF, int BLUE_OFF>
+template <int ALPHA_OFF, int RED_OFF, int GREEN_OFF, int BLUE_OFF>
 class Pixel32
 {
 public:
@@ -316,4 +316,3 @@ using PixelABGR = Pixel32<0, 3, 2, 1>;
 extern template class Pixel32<0, 3, 2, 1>;
 
 #endif // !defined(BITMAP_PIXEL_H)
-

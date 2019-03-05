@@ -22,7 +22,7 @@ endif()
 #configure_file("${PROJECT_SOURCE_DIR}/Version.h.in" "${PROJECT_BINARY_DIR}/Version.h")
 
 set(PUBLIC_INCLUDE_PATHS
-    ${CMAKE_SOURCE_DIR}/include
+    include
 )
 
 set(PRIVATE_INCLUDE_PATHS
@@ -40,7 +40,8 @@ set(SOURCES
 source_group(Sources FILES ${SOURCES})
 
 add_library(${PROJECT_NAME} ${SOURCES})
-target_include_directories(Bitmap PUBLIC ${PUBLIC_INCLUDE_PATH} PRIVATE ${PRIVATE_INCLUDE_PATHS})
+target_link_libraries(${PROJECT_NAME} Rect)
+target_include_directories(Bitmap PUBLIC ${PUBLIC_INCLUDE_PATHS} PRIVATE ${PRIVATE_INCLUDE_PATHS})
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         -DNOMINMAX
@@ -52,6 +53,8 @@ target_compile_definitions(${PROJECT_NAME}
 )
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+
+add_subdirectory(Rect)
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     include(CTest)

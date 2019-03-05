@@ -14,7 +14,7 @@ public:
 
     //! Pixel type.
     using PixelType = Pixel;
-    
+
     //! Size of a pixel in bytes
     static size_t constexpr PIXEL_SIZE = sizeof(Pixel);
 
@@ -55,7 +55,7 @@ public:
     Pixel const * data(int row = 0, int column = 0) const { return addressOf(row, column); }
 
     //! Returns a pointer to the pixel at (row, column).
-    Pixel       * data(int row = 0, int column = 0)       { return const_cast<Pixel *>(addressOf(row, column)); }
+    Pixel * data(int row = 0, int column = 0) { return const_cast<Pixel *>(addressOf(row, column)); }
 
     //! Returns the width of the bitmap (in pixels).
     int width() const { return width_; }
@@ -67,16 +67,16 @@ public:
     int pitch() const { return pitch_; }
 
     //! Creates a bitmap from a region of this bitmap.
-    Bitmap region(int row, int column, int width, int height) const;
+    Bitmap region(int row, int column, int width, int height, int pitch = 0) const;
 
     //! Copies a section of another bitmap into this bitmap
     void copy(Bitmap const & src, Rect const & srcRect, int dstC, int dstR);
 
 protected:
 
-    int width_   = 0;       //!< Width (in pixels)
-    int height_  = 0;       //!< Height (in pixels)
-    int pitch_   = 0;       //!< Pitch (in bytes)
+    int width_    = 0;      //!< Width (in pixels)
+    int height_   = 0;      //!< Height (in pixels)
+    int pitch_    = 0;      //!< Pitch (in bytes)
     bool referenced_ = false; //!< If true, then this bitmap does not "own" the image data
     Pixel * data_ = nullptr; //!< Bitmap image data
 
@@ -85,11 +85,11 @@ private:
     // Clips a rect so that it lies entirely within both the source and dest bitmaps.
     void clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, int * dstC) const;
 
-   // Returns a pointer to the pixel at (row,column)
+    // Returns a pointer to the pixel at (row,column)
     Pixel const * addressOf(int row, int column) const;
 
     // Creates a copy of image data
-    static Pixel * createCopy(int pitch, int height, Pixel const * data);
+    static Pixel * createCopy(Pixel const * data, int pitch, int height);
 };
 
 template <class Pixel>
@@ -190,7 +190,7 @@ Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap && rhs)
     height_     = rhs.height_;
     pitch_      = rhs.pitch_;
     referenced_ = rhs.referenced_;
-    data_        = rhs.data_;
+    data_       = rhs.data_;
 
     if (!rhs.referenced_)
         rhs.data_ = nullptr;
@@ -213,7 +213,7 @@ void Bitmap<Pixel>::load(int w, int h, int p, Pixel const * data)
     height_     = h;
     pitch_      = (p > 0) ? p : w * PIXEL_SIZE;
     referenced_ = false;
-    data_ = createCopy(data, p, h);
+    data_       = createCopy(data, p, h);
 }
 
 template <class Pixel>
@@ -227,18 +227,18 @@ void Bitmap<Pixel>::reference(int w, int h, int p, Pixel * data)
     if (!referenced_ && data_)
         delete[] data_;
 
-    width_ = w;
-    height_ = h;
-    pitch_ = (p > 0) ? p : w * PIXEL_SIZE;
+    width_      = w;
+    height_     = h;
+    pitch_      = (p > 0) ? p : w * PIXEL_SIZE;
     referenced_ = true;
-    data_ = data;
+    data_       = data;
 }
 
 template <class Pixel>
-Bitmap<Pixel> Bitmap<Pixel>::region(int row, int column, int width, int height, int pitch = 0) const
+Bitmap<Pixel> Bitmap<Pixel>::region(int row, int column, int width, int height, int pitch /*= 0*/) const
 {
     Bitmap<Pixel> region(width, height, pitch);
-    Rect srcRect(column, row, width, height);
+    Rect          srcRect(column, row, width, height);
     region.copy(*this, srcRect, 0, 0);
     return region;
 }
@@ -256,7 +256,7 @@ void Bitmap<Pixel>::copy(Bitmap const & src, Rect const & srcRect, int dstR, int
     int srcC = rect.column;
     for (int i = 0; i < rect.height; ++i)
     {
-        Pixel * d       = const_cast<Pixel *>(addressOf(dstR, dstC));
+        Pixel *       d = const_cast<Pixel *>(addressOf(dstR, dstC));
         Pixel const * s = src.data(srcR, srcC);
         memcpy(d, s, rect.width * PIXEL_SIZE);
         ++srcR;
@@ -270,23 +270,23 @@ template <class Pixel>
 void Bitmap<Pixel>::clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, int * dstC) const
 {
     Rect rect = *srcRect;
-    int dc = *dstC;
-    int dr = *dstR;
+    int  dc   = *dstC;
+    int  dr   = *dstR;
 
     // Clip to source bitmap
 
     if (rect.x < 0)
     {
         rect.width += rect.x;
-        dc -= rect.x;
-        rect.x = 0;
+        dc         -= rect.x;
+        rect.x      = 0;
     }
 
     if (rect.y < 0)
     {
         rect.height += rect.y;
-        dr -= rect.y;
-        rect.y = 0;
+        dr          -= rect.y;
+        rect.y       = 0;
     }
 
     if (rect.width > srcW - rect.x)
@@ -300,15 +300,15 @@ void Bitmap<Pixel>::clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, in
     if (dc < 0)
     {
         rect.width_ += dc;
-        rect.x -= dc;
-        dc = 0;
+        rect.x      -= dc;
+        dc           = 0;
     }
 
     if (dr < 0)
     {
         rect.height_ += dr;
-        rect.y -= dr;
-        dr = 0;
+        rect.y       -= dr;
+        dr            = 0;
     }
 
     if (rect.width > width_ - dc)
@@ -318,8 +318,8 @@ void Bitmap<Pixel>::clipToFit(Rect * srcRect, int srcW, int srcH, int * dstR, in
         rect.height = height_ - dr;
 
     *srcRect = rect;
-    *dstC = dc;
-    *dstR = dr;
+    *dstC    = dc;
+    *dstR    = dr;
 }
 
 template <class Pixel>
@@ -329,15 +329,10 @@ Pixel const * Bitmap<Pixel>::addressOf(int row, int column) const
 }
 
 template <class Pixel>
-Pixel * Bitmap<Pixel>::createCopy(Pixel * data, int pitch, int height)
+Pixel * Bitmap<Pixel>::createCopy(Pixel const * data, int pitch, int height)
 {
     Pixel * copy = reinterpret_cast<Pixel *>(new char[pitch * height]);
     memcpy(copy, data, pitch * height);
 }
-
-using Bitmap8 = Bitmap<Pixel8>;
-using Bitmap16 = Bitmap<Pixel16>;
-using Bitmap24 = Bitmap<Pixel24>;
-using Bitmap32 = Bitmap<Pixel32>;
 
 #endif // !defined(BITMAP_BITMAP_H)
