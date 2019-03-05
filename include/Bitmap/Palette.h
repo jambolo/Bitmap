@@ -4,6 +4,8 @@
 #pragma once
 
 #include "Pixel.h"
+#include <cstddef>
+#include <cassert>
 
 template <class Entry>
 class Palette
@@ -34,13 +36,13 @@ public:
     // Operator []
     Entry & operator [](int entry)
     {
-        assert_limits(0, entry, PALETTE_SIZE - 1);
+        assert(entry >= 0 && entry < PALETTE_SIZE);
         return entries_[entry];
     }
 
     Entry operator [](int entry) const
     {
-        assert_limits(0, entry, PALETTE_SIZE - 1);
+        assert(entry >= 0 && entry < PALETTE_SIZE);
         return entries_[entry];
     }
 
