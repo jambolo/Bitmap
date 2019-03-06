@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstddef>
 
+//! A palette type.
 template <class Entry>
 class Palette
 {

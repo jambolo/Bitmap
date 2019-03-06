@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstring>
 
+//! An image type.
 template <typename Pixel>
 class Bitmap
 {
@@ -182,7 +183,6 @@ Bitmap<Pixel>::~Bitmap()
 #endif
 }
 
-//! @note   The constructor creates a reference bitmap if the source is a reference bitmap.
 template <class Pixel>
 Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap const & rhs)
 {
@@ -311,8 +311,9 @@ void Bitmap<Pixel>::reference(int width, int height, size_t pitch, Pixel * data)
 //! @param  y           Top of the region
 //! @param  width       Width of the region
 //! @param  height      Height of the region
+//! @param  pitch       Pitch of the resulting bitmap, or 0 if determined by width
 //!
-//! @return     reference to this bitmap
+//! @return     resulting bitmap
 
 template <class Pixel>
 Bitmap<Pixel> Bitmap<Pixel>::region(int x, int y, int width, int height, size_t pitch /*= 0*/) const
@@ -353,8 +354,6 @@ void Bitmap<Pixel>::copy(Bitmap const & src, Rect const & srcRect, int dstY, int
     }
 }
 
-//!
-//! @note   If the source x or y changes then so must the destination x or y.
 template <class Pixel>
 void Bitmap<Pixel>::clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * dstY, int dstW, int dstH)
 {

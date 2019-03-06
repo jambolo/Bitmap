@@ -5,36 +5,6 @@
 
 #include <cstdint>
 
-struct ARGB
-{
-    uint8_t alpha;
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-};
-
-struct RGB
-{
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-};
-
-struct BGRA
-{
-    uint8_t blue;
-    uint8_t green;
-    uint8_t red;
-    uint8_t alpha;
-};
-
-struct BGR
-{
-    uint8_t blue;
-    uint8_t green;
-    uint8_t red;
-};
-
 //! 8-bit pixel.
 using Pixel8 = uint8_t;
 
@@ -212,11 +182,20 @@ class Pixel32
 {
 public:
 
+    //! Constructor.
+    //!
+    //! @param 	r
+    //! @param 	g
+    //! @param 	b
+    //! @param 	a
     Pixel32(float r, float g, float b, float a = 1.0f)
     {
         set(r, g, b, a);
     }
 
+    //! Constructor.
+    //!
+    //! @param 	c
     Pixel32(uint32_t c)
     {
         set(c);
@@ -228,6 +207,11 @@ public:
         return (value_[0] << 24) | (value_[1] << 16) | (value_[2] << 8) | value_[3];
     }
     //! Sets the value.
+    //!
+    //! @param 	r
+    //! @param 	g
+    //! @param 	b
+    //! @param 	a
     void set(float r, float g, float b, float a = 1.0f)
     {
         setRed(r);
@@ -237,6 +221,8 @@ public:
     }
 
     //! Sets the value.
+    //!
+    //! @param 	c
     void set(uint32_t c)
     {
         value_[0] = uint8_t((c >> 24) & 0xff);
