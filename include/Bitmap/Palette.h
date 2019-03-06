@@ -4,16 +4,15 @@
 #pragma once
 
 #include "Pixel.h"
-#include <cstddef>
 #include <cassert>
+#include <cstddef>
 
 template <class Entry>
 class Palette
 {
 public:
 
-    //! Type of Entry template parameter
-    using EntryType = Entry;
+    using EntryType = Entry;    //!< Entry template parameter type
 
     static size_t constexpr PALETTE_SIZE = 256;     //!< Number of entries in a palette
     static size_t constexpr ENTRY_SIZE   = sizeof(Entry); //!< Size of a palette entry
@@ -22,6 +21,8 @@ public:
     Palette() = default;
 
     //! Constructor.
+    //!
+    //! @param  pData   Palette data
     Palette(Entry const * pData)
     {
         memcpy(entries_, pData, sizeof entries_);
@@ -33,13 +34,14 @@ public:
     //! Returns a pointer to the palette data
     Entry * entries() { return entries_; }
 
-    // Operator []
+    //! Operator []
     Entry & operator [](int entry)
     {
         assert(entry >= 0 && entry < PALETTE_SIZE);
         return entries_[entry];
     }
 
+    //! Operator []
     Entry operator [](int entry) const
     {
         assert(entry >= 0 && entry < PALETTE_SIZE);

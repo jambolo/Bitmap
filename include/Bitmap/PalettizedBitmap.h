@@ -48,9 +48,6 @@ private:
     Palette<Color> palette_;        // The palette
 };
 
-using Bitmap816 = PalettizedBitmap<Pixel16>;
-using Bitmap824 = PalettizedBitmap<Pixel24>;
-
 template <class Color>
 PalettizedBitmap<Color>::PalettizedBitmap(int w, int h)
     : BaseClass(w, h)
