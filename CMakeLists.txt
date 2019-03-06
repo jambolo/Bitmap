@@ -35,7 +35,7 @@ set(SOURCES
     include/Bitmap/PalettizedBitmap.h
     include/Bitmap/Pixel.h
     
-    src/Pixel.cpp
+    Pixel.cpp
 )
 source_group(Sources FILES ${SOURCES})
 
