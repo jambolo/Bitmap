@@ -161,7 +161,7 @@ STRIP_FROM_PATH        =
 # specify the list of include paths that are normally passed to the compiler
 # using the -I flag.
 
-STRIP_FROM_INC_PATH    =
+STRIP_FROM_INC_PATH    = include/
 
 # If the SHORT_NAMES tag is set to YES, doxygen will generate much shorter (but
 # less readable) file names. This can be useful is your file systems doesn't
@@ -324,7 +324,7 @@ BUILTIN_STL_SUPPORT    = NO
 # enable parsing support.
 # The default value is: NO.
 
-CPP_CLI_SUPPORT        = YES
+CPP_CLI_SUPPORT        = NO
 
 # Set the SIP_SUPPORT tag to YES if your project consists of sip (see:
 # http://www.riverbankcomputing.co.uk/software/sip/intro) sources only. Doxygen
@@ -656,7 +656,7 @@ MAX_INITIALIZER_LINES  = 30
 # list will mention the files that were used to generate the documentation.
 # The default value is: YES.
 
-SHOW_USED_FILES        = YES
+SHOW_USED_FILES        = NO
 
 # Set the SHOW_FILES tag to NO to disable the generation of the Files page. This
 # will remove the Files entry from the Quick Index and from the Folder Tree View
@@ -822,7 +822,8 @@ RECURSIVE              = NO
 # run.
 
 EXCLUDE                = README.md \
-                         test
+                         test \
+                         json
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -932,7 +933,7 @@ FILTER_SOURCE_PATTERNS =
 # (index.html). This can be useful if you have a project on for instance GitHub
 # and want to reuse the introduction page also for the doxygen output.
 
-USE_MDFILE_AS_MAINPAGE =
+USE_MDFILE_AS_MAINPAGE = README.md
 
 #---------------------------------------------------------------------------
 # Configuration options related to source browsing
@@ -1542,7 +1543,7 @@ MATHJAX_CODEFILE       =
 # The default value is: YES.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-SEARCHENGINE           = NO
+SEARCHENGINE           = YES
 
 # When the SERVER_BASED_SEARCH tag is enabled the search engine will be
 # implemented using a web server instead of a web client using Javascript. There
@@ -2031,7 +2032,12 @@ SEARCH_INCLUDES        = YES
 # preprocessor.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           =
+INCLUDE_PATH           = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include" \
+                         "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\atlmfc\include" \
+                         "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\ucrt" \
+                         "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\um" \
+                         "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\shared" \
+                         "C:\Program Files (x86)\Windows Kits\10\Include\10.0.14393.0\winrt" \
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the
@@ -2049,7 +2055,7 @@ INCLUDE_FILE_PATTERNS  =
 # recursively expanded use the := operator instead of the = operator.
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
-PREDEFINED             = _DEBUG
+PREDEFINED             = _DEBUG WIN32 _WINDOWS NOMINMAX WIN32_LEAN_AND_MEAN VC_EXTRALEAN
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The
@@ -2155,7 +2161,7 @@ DIA_PATH               =
 # and usage relations if the target is undocumented or is not a class.
 # The default value is: YES.
 
-HIDE_UNDOC_RELATIONS   = YES
+HIDE_UNDOC_RELATIONS   = NO
 
 # If you set the HAVE_DOT tag to YES then doxygen will assume the dot tool is
 # available from the path. This tool is part of Graphviz (see:
