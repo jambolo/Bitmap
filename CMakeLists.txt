@@ -1,7 +1,56 @@
 cmake_minimum_required (VERSION 3.10)
-project(Bitmap CXX)
+project(Bitmap VERSION 0.1.0 LANGUAGES CXX)
 
 option(BUILD_SHARED_LIBS "Build libraries as DLLs" FALSE)
+
+#########################################################################
+# Build                                                                 #
+#########################################################################
+
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+	find_package(Rect REQUIRED)
+endif()
+
+set(PUBLIC_INCLUDE_PATHS
+    $<INSTALL_INTERFACE:include>    
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+set(PRIVATE_INCLUDE_PATHS
+    .
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/Bitmap
+)
+
+set(SOURCES
+    include/Bitmap/Bitmap.h
+    include/Bitmap/Palette.h
+    include/Bitmap/PalettizedBitmap.h
+    include/Bitmap/Pixel.h
+    
+    Pixel.cpp
+)
+source_group(Sources FILES ${SOURCES})
+
+add_library(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} Rect::Rect)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PUBLIC_INCLUDE_PATHS} PRIVATE ${PRIVATE_INCLUDE_PATHS})
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+        -DNOMINMAX
+        -DWIN32_LEAN_AND_MEAN
+        -DVC_EXTRALEAN
+        -D_CRT_SECURE_NO_WARNINGS
+        -D_SECURE_SCL=0
+        -D_SCL_SECURE_NO_WARNINGS
+)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+
+#configure_file("${PROJECT_SOURCE_DIR}/Version.h.in" "${PROJECT_BINARY_DIR}/Version.h")
+
+#########################################################################
+# Documentation                                                         #
+#########################################################################
 
 set(${PROJECT_NAME}_DOXYGEN_OUTPUT_DIRECTORY "" CACHE PATH "Doxygen output directory (empty to disable)")
 if(${PROJECT_NAME}_DOXYGEN_OUTPUT_DIRECTORY)
@@ -17,44 +66,9 @@ if(${PROJECT_NAME}_DOXYGEN_OUTPUT_DIRECTORY)
     endif(DOXYGEN_FOUND)
 endif()
 
-#set(${PROJECT_NAME}_VERSION_MAJOR 0)
-#set(${PROJECT_NAME}_VERSION_MINOR 1)
-#configure_file("${PROJECT_SOURCE_DIR}/Version.h.in" "${PROJECT_BINARY_DIR}/Version.h")
-
-set(PUBLIC_INCLUDE_PATHS
-    include
-)
-
-set(PRIVATE_INCLUDE_PATHS
-    include/Bitmap
-)
-
-set(SOURCES
-    include/Bitmap/Bitmap.h
-    include/Bitmap/Palette.h
-    include/Bitmap/PalettizedBitmap.h
-    include/Bitmap/Pixel.h
-    
-    Pixel.cpp
-)
-source_group(Sources FILES ${SOURCES})
-
-add_library(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} Rect)
-target_include_directories(Bitmap PUBLIC ${PUBLIC_INCLUDE_PATHS} PRIVATE ${PRIVATE_INCLUDE_PATHS})
-target_compile_definitions(${PROJECT_NAME}
-    PRIVATE
-        -DNOMINMAX
-        -DWIN32_LEAN_AND_MEAN
-        -DVC_EXTRALEAN
-        -D_CRT_SECURE_NO_WARNINGS
-        -D_SECURE_SCL=0
-        -D_SCL_SECURE_NO_WARNINGS
-)
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-
-add_subdirectory(Rect)
+#########################################################################
+# Testing                                                               #
+#########################################################################
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     include(CTest)
@@ -64,4 +78,47 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     endif()
 endif()
 
+#########################################################################
+# Installation                                                          #
+#########################################################################
+
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+include(GNUInstallDirs)
+set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}-targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT ${PROJECT_NAME}-targets
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+# Create a ConfigVersion.cmake file
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/${PROJECT_NAME}Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+# Install the config, configversion and custom find modules
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${INSTALL_CONFIGDIR}
+)
+
+# Exporting from the build tree
+export(EXPORT ${PROJECT_NAME}-targets FILE ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake NAMESPACE ${PROJECT_NAME}::)
 

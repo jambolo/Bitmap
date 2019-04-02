@@ -1,0 +1,8 @@
+get_filename_component(Bitmap_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+if(NOT TARGET Bitmap::Bitmap)
+    include("${Bitmap_CMAKE_DIR}/BitmapTargets.cmake")
+endif()
+
+set(Bitmap_LIBRARIES Bitmap::Bitmap)

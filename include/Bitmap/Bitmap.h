@@ -318,8 +318,8 @@ void Bitmap<Pixel>::reference(int width, int height, size_t pitch, Pixel * data)
 template <class Pixel>
 Bitmap<Pixel> Bitmap<Pixel>::region(int x, int y, int width, int height, size_t pitch /*= 0*/) const
 {
-    Rect srcRect(0, 0, width_, height_);
-    srcRect.clip(Rect(x, y, width, height));
+    Rect srcRect{ 0, 0, width_, height_ };
+    srcRect.clip(Rect{ x, y, width, height });
 #if 0
     return Bitmap<Pixel>(srcRect.width, srcRect.height, pitch_, addressOf(srcRect.x, srcRect.y), pitch);
 #else
