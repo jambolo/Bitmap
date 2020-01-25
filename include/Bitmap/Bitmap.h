@@ -10,6 +10,9 @@
 #include <cstddef>
 #include <cstring>
 
+template <typename Pixel> class BitmapConstRef;
+template <typename Pixel> class BitmapRef;
+
 //! An image type.
 template <typename Pixel>
 class Bitmap
@@ -28,6 +31,12 @@ public:
     //! Constructor.
     Bitmap(int width, int height, size_t pitch = 0, Pixel const * data = nullptr);
 
+    //! Constructor.
+    Bitmap(BitmapConstRef<Pixel> const & rhs);
+
+    //! Constructor.
+    Bitmap(BitmapRef<Pixel> const & rhs);
+
     //! Copy constructor.
     Bitmap(Bitmap const & rhs);
 
@@ -39,6 +48,20 @@ public:
 
     //! Assignment operator
     Bitmap & operator =(Bitmap const & rhs);
+
+    //! Assignment operator
+    Bitmap & operator =(BitmapConstRef<Pixel> const & rhs)
+    {
+        load(rhs.width(), rhs.height(), rhs.pitch(), rhs.data());
+        return *this;
+    }
+
+    //! Assignment operator
+    Bitmap & operator =(BitmapRef<Pixel> const & rhs)
+    {
+        load(rhs.width(), rhs.height(), rhs.pitch(), rhs.data());
+        return *this;
+    }
 
     //! Move assignment operator
     Bitmap & operator =(Bitmap && rhs);
@@ -435,4 +458,119 @@ Pixel * Bitmap<Pixel>::createCopy(Pixel const * data, size_t pitch, int height)
     return copy;
 }
 
+
+//! An image reference type.
+template <typename Pixel>
+class BitmapConstRef
+{
+public:
+
+    //! Pixel type.
+    using PixelType = Pixel;
+
+    //! Size of a pixel in bytes
+    static size_t constexpr PIXEL_SIZE = sizeof(Pixel);
+
+    //! Constructor.
+    BitmapConstRef(int width, int height, size_t pitch = 0, Pixel const * data = nullptr);
+
+    //! Constructor.
+    BitmapConstRef(Bitmap<Pixel> const & rhs);
+
+    //! Constructor.
+    BitmapConstRef(BitmapRef<Pixel> const & rhs);
+
+    //! Assignment operator
+    BitmapConstRef & operator =(BitmapRef<Pixel> const & rhs);
+
+    //! Assignment operator
+    BitmapConstRef & operator =(Bitmap<Pixel> const & rhs);
+
+    //! Returns the pixel at (x,y)
+    Pixel const * pixel(int x, int y) const { return data_ ? *data(x, y) : Pixel(); }
+
+    //! Returns the width of the bitmap (in pixels).
+    int width() const { return width_; }
+
+    //! Returns the height of the bitmap (in pixels).
+    int height() const { return height_; }
+
+    //! Returns the pitch of the bitmap (in bytes).
+    size_t pitch() const { return pitch_; }
+
+    //! Returns a pointer to the pixel at (x,y).
+    Pixel const * data(int x = 0, int y = 0) const;
+
+    //! Creates a bitmap reference from a region of this bitmap reference.
+    BitmapConstRef region(int x, int y, int width, int height, size_t pitch = 0) const;
+
+protected:
+
+    int width_    = 0;          //!< Width (in pixels)
+    int height_   = 0;          //!< Height (in pixels)
+    size_t pitch_ = 0;          //!< Pitch (in bytes)
+    Pixel const * data_ = nullptr;    //!< Bitmap image data
+
+private:
+
+    // Clips a rect so that it lies entirely within both the source and destination bitmaps.
+    static void clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * dstY, int dstW, int dstH);
+};
+
+
+
+//! An image reference type.
+template <typename Pixel>
+class BitmapRef
+{
+public:
+
+    //! Pixel type.
+    using PixelType = Pixel;
+
+    //! Size of a pixel in bytes
+    static size_t constexpr PIXEL_SIZE = sizeof(Pixel);
+
+    //! Constructor.
+    BitmapRef(int width, int height, size_t pitch = 0, Pixel * data = nullptr);
+
+    //! Constructor.
+    BitmapRef(Bitmap<Pixel> & rhs);
+
+    //! Assignment operator
+    BitmapRef & operator =(BitmapRef const & rhs) = default;
+
+    //! Assignment operator
+    BitmapRef & operator =(Bitmap<Pixel> & rhs);
+
+    //! Returns the pixel at (x,y)
+    Pixel pixel(int x, int y) const { return data_ ? *data(x, y) : Pixel(); }
+
+    //! Returns the width of the bitmap (in pixels).
+    int width() const { return width_; }
+
+    //! Returns the height of the bitmap (in pixels).
+    int height() const { return height_; }
+
+    //! Returns the pitch of the bitmap (in bytes).
+    size_t pitch() const { return pitch_; }
+
+    //! Returns a pointer to the pixel at (x,y).
+    Pixel * data(int x = 0, int y = 0) const;
+
+    //! Creates a bitmap reference from a region of this bitmap reference.
+    BitmapRef region(int x, int y, int width, int height, size_t pitch = 0) const;
+
+protected:
+
+    int width_    = 0;          //!< Width (in pixels)
+    int height_   = 0;          //!< Height (in pixels)
+    size_t pitch_ = 0;          //!< Pitch (in bytes)
+    Pixel * data_ = nullptr;    //!< Bitmap image data
+
+private:
+
+    // Clips a rect so that it lies entirely within both the source and destination bitmaps.
+    static void clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * dstY, int dstW, int dstH);
+};
 #endif // !defined(BITMAP_BITMAP_H)

@@ -96,7 +96,7 @@ TEST(BitmapTest, ReferencedConstructor)
         size_t    PITCH  = 0;
         uint16_t const * const DATA = &data[0];
 
-        Bitmap<uint16_t> referenced_zeropitch_constructed(128, 200, 0, DATA);
+        Bitmap<uint16_t> referenced_zeropitch_constructed(128, 200, PITCH, DATA);
 
         EXPECT_EQ(referenced_zeropitch_constructed.width(), WIDTH);
         EXPECT_EQ(referenced_zeropitch_constructed.height(), HEIGHT);
@@ -1318,7 +1318,7 @@ TEST(BitmapTest, Pixel)
         size_t    PITCH  = 0;
         uint16_t const * const DATA = &data[0];
 
-        Bitmap<uint16_t> constructed(128, 200, 0, DATA);
+        Bitmap<uint16_t> constructed(WIDTH, HEIGHT, PITCH, DATA);
         EXPECT_EQ(constructed.pixel(0, 0), *DATA);
         EXPECT_EQ(constructed.pixel(2, 1), *(DATA + 130));
     }
