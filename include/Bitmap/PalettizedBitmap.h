@@ -3,8 +3,9 @@
 
 #pragma once
 
-#include "Bitmap.h"
-#include "Palette.h"
+#include "Bitmap/Bitmap.h"
+#include "Bitmap/Palette.h"
+#include <algorithm>
 #include <cstdint>
 
 //! A bitmap with a palette.
@@ -25,16 +26,13 @@ public:
     PalettizedBitmap(int w, int h, Palette<Color> const & palette);
 
     //! Constructor.
-    PalettizedBitmap(int w, int h, uint8_t * data, Palette<Color> const & palette);
+    PalettizedBitmap(int w, int h, uint8_t const * data, Palette<Color> const & palette);
 
     //! Loads a bitmap
     void load(int w, int h, uint8_t const * data, Palette<Color> const & palette);
 
-    //! References a memory buffer
-    void reference(int w, int h, uint8_t * data, Palette<Color> const & palette);
-
     //! Returns the palette
-    Palette<Color> palette() const { return palette_; }
+    Palette<Color> const & palette() const { return palette_; }
 
     //! Returns the palette
     Palette<Color> & palette() { return palette_; }
@@ -44,6 +42,9 @@ public:
 
     //! Creates a non-palettized bitmap from a region of this bitmap.
     Bitmap<Color> decompressedRegion(int x, int y, int width, int height, int pitch = 0) const;
+
+protected:
+    using BaseClass = Bitmap<uint8_t>; //!< Base class
 
 private:
 
@@ -73,7 +74,7 @@ PalettizedBitmap<Color>::PalettizedBitmap(int w, int h, Palette<Color> const & p
 //! @param 	data
 //! @param 	palette
 template <class Color>
-PalettizedBitmap<Color>::PalettizedBitmap(int w, int h, uint8_t * data, Palette<Color> const & palette)
+PalettizedBitmap<Color>::PalettizedBitmap(int w, int h, uint8_t const * data, Palette<Color> const & palette)
     : BaseClass(w, h, 0, data)
     , palette_(palette)
 {
@@ -90,15 +91,6 @@ void PalettizedBitmap<Color>::load(int w, int h, uint8_t const * data, Palette<C
     palette_ = palette;
 }
 
-#if 0
-template <class Color>
-void PalettizedBitmap<Color>::reference(int w, int h, uint8_t * data, Palette<Color> const & palette)
-{
-    BaseClass::reference(w, h, 0, data);
-    palette_ = palette;
-}
-#endif
-
 //! @param 	x       Location of the region
 //! @param 	y       Location of the region
 //! @param 	width   Width of the region
@@ -109,20 +101,18 @@ void PalettizedBitmap<Color>::reference(int w, int h, uint8_t * data, Palette<Co
 template <class Color>
 Bitmap<Color> PalettizedBitmap<Color>::decompressedRegion(int x, int y, int width, int height, int pitch /*= 0*/) const
 {
-    Rect clipped(0, 0, width_, height_);
-    clipped.clip(x, y, width, height);
-    Bitmap<Color>  region(clipped.width, clipped.height, pitch);
+    Rect clipped{0, 0, width_, height_};
+    clipped.clip(Rect{x, y, width, height});
+    Bitmap<Color>   region(clipped.width, clipped.height, pitch);
     uint8_t const * src = data(clipped.x, clipped.y);
-    Color *        dst = region.data();
-    for (int i = 0; i < height; ++i)
+    Color *         dst = region.data();
+    for (int i = 0; i < clipped.height; ++i)
     {
-        for (int j = 0; j < width; ++j)
-        {
-            dst[j] = palette_[src[j]];
-        }
-        dst  = reinterpret_cast<Color *>(reinterpret_cast<char *>(dst) + region.pitch());
+        std::transform(src, src + clipped.width, dst, [this](uint8_t index) { return palette_[index]; });
+        dst  = reinterpret_cast<Color *>(reinterpret_cast<std::byte *>(dst) + region.pitch());
         src += pitch_;
     }
+    return region;
 }
 
 #endif // !defined(BITMAP_PALETTIZEDBITMAP_H)

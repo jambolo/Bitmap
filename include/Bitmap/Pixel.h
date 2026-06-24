@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <array>
+#include <cmath>
 #include <cstdint>
 
 //! 8-bit pixel.
@@ -16,7 +18,7 @@ class Pixel16
 public:
 
     //! Constructor.
-    Pixel16() = default;
+    Pixel16() : value_(0) {}
 
     //! Constructor.
     Pixel16(float r, float g, float b, float a = 1.0f)
@@ -25,7 +27,7 @@ public:
     }
 
     //! Constructor.
-    Pixel16(unsigned c)
+    explicit Pixel16(unsigned c)
         : value_(uint16_t(c))
     {
     }
@@ -39,35 +41,35 @@ public:
     //! Sets the pixel value.
     void set(float r, float g, float b, float a = 1.0f)
     {
-        value_ =   (uint16_t(r * RED_MASK + .5f) << RED_OFF)
-                 | (uint16_t(r * GREEN_MASK + .5f) << GREEN_OFF)
-                 | (uint16_t(r * BLUE_MASK + .5f) << BLUE_OFF)
-                 | (uint16_t(r * ALPHA_MASK + .5f) << ALPHA_OFF);
+        value_ = static_cast<uint16_t>(((std::lround(r * RED_MASK)) << RED_OFF) |
+                                       ((std::lround(g * GREEN_MASK)) << GREEN_OFF) |
+                                       ((std::lround(b * BLUE_MASK)) << BLUE_OFF) |
+                                       ((std::lround(a * ALPHA_MASK)) << ALPHA_OFF));
     }
 
     //! Returns the red value.
     float red() const { return float((value_ >> RED_OFF) & RED_MASK) / float(RED_MASK); }
 
     //! Sets the red value.
-    void setRed(float r) { value_ = (value_ & ~RED_MASK) | (uint16_t(r * RED_MASK + .5f) << RED_OFF); }
+    void setRed(float r) { value_ = uint16_t((value_ & ~(RED_MASK << RED_OFF)) | std::lround(r * RED_MASK) << RED_OFF); }
 
     //! Returns the green value.
     float green() const { return float((value_ >> GREEN_OFF) & GREEN_MASK) / float(GREEN_MASK); }
 
     //! Sets the green value.
-    void setGreen(float g) { value_ = (value_ & ~GREEN_MASK) | (uint16_t(g * GREEN_MASK + .5f) << GREEN_OFF); }
+    void setGreen(float g) { value_ = uint16_t((value_ & ~(GREEN_MASK << GREEN_OFF)) | (std::lround(g * GREEN_MASK) << GREEN_OFF)); }
 
     //! Returns the blue value.
     float blue() const { return float((value_ >> BLUE_OFF) & BLUE_MASK) / float(BLUE_MASK); }
 
     //! Sets the blue value.
-    void setBlue(float b) { value_ = (value_ & ~BLUE_MASK) | (uint16_t(b * BLUE_MASK + .5f) << BLUE_OFF); }
+    void setBlue(float b) { value_ = uint16_t((value_ & ~(BLUE_MASK << BLUE_OFF)) | (std::lround(b * BLUE_MASK) << BLUE_OFF)); }
 
-    //! Returns the alpha value, or 0 if not supported.
-    float alpha() const { return float((value_ >> ALPHA_OFF) & ALPHA_MASK) / float(ALPHA_MASK); }
+    //! Returns the alpha value, or 1 if not supported.
+    float alpha() const { return ALPHA_MASK ? float((value_ >> ALPHA_OFF) & ALPHA_MASK) / float(ALPHA_MASK) : 1.0f; }
 
     //! Sets the alpha value if it is supported.
-    void setAlpha(float a) { value_ = (value_ & ~ALPHA_MASK) | (uint16_t(a * ALPHA_MASK + .5f) << ALPHA_OFF); }
+    void setAlpha(float a) { if (ALPHA_MASK) value_ = uint16_t((value_ & ~(ALPHA_MASK << ALPHA_OFF)) | (std::lround(a * ALPHA_MASK) << ALPHA_OFF)); }
 
 private:
 
@@ -76,12 +78,16 @@ private:
 
 extern template class Pixel16<0, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0>;
 extern template class Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0>;
+extern template class Pixel16<0x0f, 0x0f, 0x0f, 0x0f, 12, 8, 4, 0>;
 
 //! 16-bit R5G6B5 pixel format.
 using Pixel565 = Pixel16<0, 0x1f, 0x3f, 0x1f,  0, 11, 5, 0>;
 
 //! 16-bit A1R5G5B5 pixel format.
 using Pixel1555 = Pixel16<0x01, 0x1f, 0x1f, 0x1f, 15, 10, 5, 0>;
+
+//! 16-bit F4F4F4F4 pixel format.
+using Pixel4444 = Pixel16<0x0f, 0x0f, 0x0f, 0x0f, 12, 8, 4, 0>;
 
 //! 24-bit pixel.
 template <int RED_OFF, int GREEN_OFF, int BLUE_OFF>
@@ -93,30 +99,16 @@ public:
     Pixel24() = default;
 
     //! Constructor.
-    Pixel24(float r, float g, float b)
-    {
-        set(r, g, b);
-    }
+    Pixel24(float r, float g, float b) { set(r, g, b); }
 
     //! Constructor.
-    Pixel24(unsigned c)
-    {
-        set(c);
-    }
+    explicit Pixel24(unsigned c) { set(c); }
 
     //! Returns the raw value.
-    unsigned raw() const
-    {
-        return (value_[0] << 16) | (value_[1] <<  8) | (value_[2]);
-    }
+    unsigned raw() const { return (value_[0] << 16) | (value_[1] <<  8) | (value_[2]); }
 
     //! Sets the value.
-    void set(float r, float g, float b)
-    {
-        setRed(r);
-        setGreen(g);
-        setBlue(b);
-    }
+    void set(float r, float g, float b) { setRed(r); setGreen(g); setBlue(b); }
 
     //! Sets the value.
     void set(unsigned c)
@@ -127,52 +119,34 @@ public:
     }
 
     //! Returns the red value.
-    float red() const
-    {
-        return float(value_[RED_OFF]) / float(0xff);
-    }
+    float red() const { return float(value_[RED_OFF]) / float(0xff); }
 
     //! Sets the red value.
-    void setRed(float r)
-    {
-        value_[RED_OFF] = uint8_t(r * 0xff + .5f);
-    }
+    void setRed(float r) { value_[RED_OFF] = uint8_t(std::lround(r * 0xff)); }
 
     //! Returns the green value.
-    float green() const
-    {
-        return float(value_[GREEN_OFF]) / float(0xff);
-    }
+    float green() const { return float(value_[GREEN_OFF]) / float(0xff); }
 
     //! Sets the green value.
-    void setGreen(float g)
-    {
-        value_[GREEN_OFF] = uint8_t(g * 0xff + .5f);
-    }
+    void setGreen(float g) { value_[GREEN_OFF] = uint8_t(std::lround(g * 0xff)); }
 
     //! Returns the blue value.
-    float blue() const
-    {
-        return float(value_[BLUE_OFF]) / float(0xff);
-    }
+    float blue() const { return float(value_[BLUE_OFF]) / float(0xff); }
 
     //! Sets the blue value.
-    void setBlue(float b)
-    {
-        value_[BLUE_OFF] = uint8_t(b * 0xff + .5f);
-    }
+    void setBlue(float b) { value_[BLUE_OFF] = uint8_t(std::lround(b * 0xff)); }
 
 private:
-    uint8_t value_[3]; // Component colors
+    std::array<uint8_t, 3> value_{}; // Component colors
 };
 
-// Pre-instantiated common 32-bit formats.
+// Pre-instantiated common 24-bit formats.
 
-//! 32-bit R8G8B8 pixel format.
+//! 24-bit R8G8B8 pixel format.
 using PixelRGB = Pixel24<0, 1, 2>;
 extern template class Pixel24<0, 1, 2>;
 
-//! 32-bit B8G8R8 pixel format.
+//! 24-bit B8G8R8 pixel format.
 using PixelBGR = Pixel24<2, 1, 0>;
 extern template class Pixel24<2, 1, 0>;
 
@@ -184,41 +158,32 @@ public:
 
     //! Constructor.
     //!
+    //! @param 	c
+    Pixel32() = default;
+
+    //! Constructor.
+    //!
     //! @param 	r
     //! @param 	g
     //! @param 	b
     //! @param 	a
-    Pixel32(float r, float g, float b, float a = 1.0f)
-    {
-        set(r, g, b, a);
-    }
+    Pixel32(float r, float g, float b, float a = 1.0f) { set(r, g, b, a); }
 
     //! Constructor.
     //!
     //! @param 	c
-    Pixel32(uint32_t c)
-    {
-        set(c);
-    }
+    explicit Pixel32(uint32_t c) { set(c); }
 
     //! Returns the value in raw form.
-    uint32_t raw() const
-    {
-        return (value_[0] << 24) | (value_[1] << 16) | (value_[2] << 8) | value_[3];
-    }
+    uint32_t raw() const { return (value_[0] << 24) | (value_[1] << 16) | (value_[2] << 8) | value_[3]; }
+
     //! Sets the value.
     //!
     //! @param 	r
     //! @param 	g
     //! @param 	b
     //! @param 	a
-    void set(float r, float g, float b, float a = 1.0f)
-    {
-        setRed(r);
-        setGreen(g);
-        setBlue(b);
-        setAlpha(a);
-    }
+    void set(float r, float g, float b, float a = 1.0f) { setRed(r); setGreen(g); setBlue(b); setAlpha(a); }
 
     //! Sets the value.
     //!
@@ -232,55 +197,31 @@ public:
     }
 
     //! Returns the alpha value.
-    float alpha() const
-    {
-        return float(value_[ALPHA_OFF]) / float(0xff);
-    }
+    float alpha() const { return float(value_[ALPHA_OFF]) / float(0xff); }
 
     //! Sets the alpha value.
-    void setAlpha(float a)
-    {
-        value_[ALPHA_OFF] = uint8_t(a * 0xff + .5f);
-    }
+    void setAlpha(float a) { value_[ALPHA_OFF] = uint8_t(std::lround(a * 0xff)); }
 
     //! Returns the red value.
-    float red() const
-    {
-        return float(value_[RED_OFF]) / float(0xff);
-    }
+    float red() const { return float(value_[RED_OFF]) / float(0xff); }
 
     //! Sets the red value.
-    void setRed(float r)
-    {
-        value_[RED_OFF] = uint8_t(r * 0xff + .5f);
-    }
+    void setRed(float r) { value_[RED_OFF] = uint8_t(std::lround(r * 0xff)); }
 
     //! Returns the green value.
-    float green() const
-    {
-        return float(value_[GREEN_OFF]) / float(0xff);
-    }
+    float green() const { return float(value_[GREEN_OFF]) / float(0xff); }
 
     //! Sets the green value.
-    void setGreen(float g)
-    {
-        value_[GREEN_OFF] = uint8_t(g * 0xff + .5f);
-    }
+    void setGreen(float g) { value_[GREEN_OFF] = uint8_t(std::lround(g * 0xff)); }
 
     //! Returns the blue value.
-    float blue() const
-    {
-        return float(value_[BLUE_OFF]) / float(0xff);
-    }
+    float blue() const { return float(value_[BLUE_OFF]) / float(0xff); }
 
     //! Sets the blue value.
-    void setBlue(float b)
-    {
-        value_[BLUE_OFF] = uint8_t(b * 0xff + .5f);
-    }
+    void setBlue(float b) { value_[BLUE_OFF] = uint8_t(std::lround(b * 0xff)); }
 
 private:
-    uint8_t value_[4]; // Component colors
+    std::array<uint8_t, 4> value_{}; // Component colors
 };
 
 // Pre-instantiated common 32-bit formats.

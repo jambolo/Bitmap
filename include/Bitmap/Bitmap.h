@@ -9,6 +9,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 //! An image type.
 template <typename Pixel>
@@ -28,31 +29,14 @@ public:
     //! Constructor.
     Bitmap(int width, int height, size_t pitch = 0, Pixel const * data = nullptr);
 
-    //! Copy constructor.
-    Bitmap(Bitmap const & rhs);
-
-    //! Move constructor.
-    Bitmap(Bitmap && rhs);
-
-    //! Destructor.
-    virtual ~Bitmap();
-
-    //! Assignment operator
-    Bitmap & operator =(Bitmap const & rhs);
-
-    //! Move assignment operator
-    Bitmap & operator =(Bitmap && rhs);
-
     //! Loads an image
     void load(int width, int height, size_t pitch, Pixel const * data);
 
-#if 0
-    //! References an image
-    void reference(int width, int height, size_t pitch, Pixel * data);
-#endif
+    //! Erases the image data, resetting the width, height, and pitch to 0.
+    void clear();
 
     //! Returns the pixel at (y, x)
-    Pixel pixel(int x, int y) const { return data_ ? *addressOf(x, y) : Pixel(); }
+    Pixel pixel(int x, int y) const { Pixel const * p = addressOf(x, y); return p ? *p : Pixel(); }
 
     //! Returns the width of the bitmap (in pixels).
     int width() const { return width_; }
@@ -62,11 +46,6 @@ public:
 
     //! Returns the pitch of the bitmap (in bytes).
     size_t pitch() const { return pitch_; }
-
-#if 0
-    //! Returns true if the bitmap references an external image.
-    bool referenced() const { return referenced_; }
-#endif
 
     //! Returns a pointer to the pixel at (y, x).
     Pixel const * data(int x = 0, int y = 0) const { return addressOf(x, y); }
@@ -82,13 +61,10 @@ public:
 
 protected:
 
-    int width_    = 0;          //!< Width (in pixels)
-    int height_   = 0;          //!< Height (in pixels)
-    size_t pitch_ = 0;          //!< Pitch (in bytes)
-#if 0
-    bool referenced_ = false;   //!< If true, then this bitmap does not "own" the image data
-#endif
-    Pixel * data_ = nullptr;    //!< Bitmap image data
+    int width_    = 0;              //!< Width (in pixels)
+    int height_   = 0;              //!< Height (in pixels)
+    size_t pitch_ = 0;              //!< Pitch (in bytes)
+    std::vector<std::byte> data_;   //!< Bitmap image data
 
 private:
 
@@ -98,32 +74,32 @@ private:
     // Returns a pointer to the pixel at (y,x)
     Pixel const * addressOf(int x, int y) const;
 
-    // Creates a copy of image data
-    static Pixel * createCopy(Pixel const * data, size_t pitch, int height);
 };
 
-//! @param  width       Width
-//! @param  height      Height
-//! @param  pitch       Pitch of the referenced image data, or 0 if it is determined by the width
-//! @param  data        Referenced image data
+//! @param  width       Width of the image data (in pixels)
+//! @param  height      Height of the image data (in pixels)
+//! @param  pitch       Pitch of the image data (in bytes), or 0 if it is determined by the width
+//! @param  data        Image data
 template <class Pixel>
 Bitmap<Pixel>::Bitmap(int width, int height, size_t pitch /*= 0*/, Pixel const * data /*= nullptr*/)
     : width_(width)
     , height_(height)
     , pitch_((pitch > 0) ? pitch : width * PIXEL_SIZE)
-#if 0
-    , referenced_(true)
-#endif
 {
     assert(width >= 0);
     assert(height >= 0);
     assert(pitch == 0 || pitch >= width * PIXEL_SIZE);
     assert(pitch % PIXEL_SIZE == 0);
+
     if (pitch_ > 0 && height_ > 0)
     {
-        data_ = reinterpret_cast<Pixel *>(new char[pitch_ * height_]);
+        data_.resize(pitch_ * height_);
         if (data)
-            memcpy(data_, data, pitch_ * height_);
+        {
+            std::byte const * src  = reinterpret_cast<std::byte const *>(data);
+            size_t            size = pitch_ * height_;
+            std::copy(src, src + size, data_.data());
+        }
     }
     else
     {
@@ -133,125 +109,9 @@ Bitmap<Pixel>::Bitmap(int width, int height, size_t pitch /*= 0*/, Pixel const *
     }
 }
 
-template <class Pixel>
-Bitmap<Pixel>::Bitmap(Bitmap const & rhs)
-    : width_(rhs.width_)
-    , height_(rhs.height_)
-    , pitch_(rhs.pitch_)
-#if 0
-    , referenced_(rhs.referenced_)
-#endif
-{
-#if 0
-    if (referenced_)
-        data_ = rhs.data_;
-    else
-#endif
-    if (rhs.data_ && pitch_ > 0 && height_ > 0)
-        data_ = createCopy(rhs.data_, pitch_, height_);
-}
-
-template <class Pixel>
-Bitmap<Pixel>::Bitmap(Bitmap && rhs)
-    : width_(rhs.width_)
-    , height_(rhs.height_)
-    , pitch_(rhs.pitch_)
-#if 0
-    , referenced_(rhs.referenced_)
-#endif
-    , data_(rhs.data_)
-{
-#if 0
-    if (rhs.data_)
-        rhs.referenced_ = true;
-#else
-    rhs.width_  = 0;
-    rhs.height_ = 0;
-    rhs.pitch_  = 0;
-    rhs.data_   = nullptr;
-#endif
-}
-
-template <class Pixel>
-Bitmap<Pixel>::~Bitmap()
-{
-#if 0
-    if (!referenced_ && data_)
-        delete[] data_;
-#else
-    delete[] data_;
-#endif
-}
-
-template <class Pixel>
-Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap const & rhs)
-{
-    if (this == &rhs)
-        return *this;
-
-#if 0
-    if (!referenced_ && data_)
-        delete[] data_;
-#else
-    delete[] data_;
-#endif
-
-    width_  = rhs.width_;
-    height_ = rhs.height_;
-    pitch_  = rhs.pitch_;
-#if 0
-    referenced_ = rhs.referenced_;
-    if (referenced_)
-        data_ = rhs.data_;
-    else
-#endif
-    if (rhs.data_ && pitch_ > 0 && height_ > 0)
-        data_ = createCopy(rhs.data_, pitch_, height_);
-    else
-        data_ = nullptr;
-
-    return *this;
-}
-
-template <class Pixel>
-Bitmap<Pixel> & Bitmap<Pixel>::operator =(Bitmap && rhs)
-{
-    if (this == &rhs)
-        return *this;
-
-#if 0
-    if (!referenced_ && data_)
-        delete[] data_;
-#else
-    delete[] data_;
-#endif
-
-    width_  = rhs.width_;
-    height_ = rhs.height_;
-    pitch_  = rhs.pitch_;
-#if 0
-    referenced_ = rhs.referenced_;
-#endif
-    data_ = rhs.data_;
-
-#if 0
-    if (!rhs.referenced_)
-        rhs.data_ = nullptr;
-#else
-    rhs.width_  = 0;
-    rhs.height_ = 0;
-    rhs.pitch_  = 0;
-    rhs.data_   = nullptr;
-#endif
-
-    return *this;
-}
-
-//! This function replaces the current image with the specified data.
-//!
-//! @param  width       New width
-//! @param  height      New height
-//! @param  pitch       Pitch of the loaded data, or 0 if it is determined by the width
+//! @param  width       Width of the replacement image (in pixels)
+//! @param  height      Height of the replacement image (in pixels)
+//! @param  pitch       Pitch of the replacement data (in bytes), or 0 if it is determined by the width
 //! @param  data        Image data to load
 template <class Pixel>
 void Bitmap<Pixel>::load(int width, int height, size_t pitch, Pixel const * data)
@@ -261,52 +121,23 @@ void Bitmap<Pixel>::load(int width, int height, size_t pitch, Pixel const * data
     assert(pitch == 0 || pitch >= width * PIXEL_SIZE);
     assert(data);
 
-#if 0
-    if (!referenced_ && data_)
-        delete[] data_;
-#else
-    delete[] data_;
-#endif
-
     width_  = width;
     height_ = height;
     pitch_  = (pitch > 0) ? pitch : width * PIXEL_SIZE;
-#if 0
-    referenced_ = false;
-#endif
-    data_ = createCopy(data, pitch_, height_);
+    data_.resize(pitch_ * height_);
+    std::byte const * src = reinterpret_cast<std::byte const *>(data);
+    size_t            size = pitch_ * height_;
+    std::copy(src, src + size, data_.data());
 }
 
-#if 0
-//! This function replaces the current image with a reference to the specified data.
-//!
-//! @param  width       New width
-//! @param  height      New height
-//! @param  pitch       Pitch of the referenced image, or 0 if it is determined by the width
-//! @param  data        Referenced image data
-//!
-//! @return void
-template <class Pixel>
-void Bitmap<Pixel>::reference(int width, int height, size_t pitch, Pixel * data)
+template<class Pixel> void Bitmap<Pixel>::clear()
 {
-    assert(data);
-    assert(width > 0);
-    assert(height > 0);
-    assert(pitch == 0 || pitch >= width * PIXEL_SIZE);
-
-    if (!referenced_ && data_)
-        delete[] data_;
-
-    width_      = width;
-    height_     = height;
-    pitch_      = (pitch > 0) ? pitch : width * PIXEL_SIZE;
-    referenced_ = true;
-    data_       = data;
+    width_  = 0;
+    height_ = 0;
+    pitch_  = 0;
+    data_.clear();
 }
-#endif // if 0
 
-//! This function creates a bitmap that references a region in this bitmap. Use copy() to create a copy of the region.
-//!
 //! @param  x           Left of the region
 //! @param  y           Top of the region
 //! @param  width       Width of the region
@@ -314,19 +145,14 @@ void Bitmap<Pixel>::reference(int width, int height, size_t pitch, Pixel * data)
 //! @param  pitch       Pitch of the resulting bitmap, or 0 if determined by width
 //!
 //! @return     resulting bitmap
-
 template <class Pixel>
 Bitmap<Pixel> Bitmap<Pixel>::region(int x, int y, int width, int height, size_t pitch /*= 0*/) const
 {
     Rect srcRect{ 0, 0, width_, height_ };
     srcRect.clip(Rect{ x, y, width, height });
-#if 0
-    return Bitmap<Pixel>(srcRect.width, srcRect.height, pitch_, addressOf(srcRect.x, srcRect.y), pitch);
-#else
     Bitmap<Pixel> r(srcRect.width, srcRect.height, pitch);
     r.copy(*this, srcRect, 0, 0);
     return r;
-#endif
 }
 
 //! @param  src         Source bitmap
@@ -336,59 +162,70 @@ Bitmap<Pixel> Bitmap<Pixel>::region(int x, int y, int width, int height, size_t 
 template <class Pixel>
 void Bitmap<Pixel>::copy(Bitmap const & src, Rect const & srcRect, int dstY, int dstX)
 {
-    Rect rect = srcRect;
-    clip(&rect, src.width(), src.height(), &dstX, &dstY, width_, height_);
+    Rect clippedSrcRect = srcRect;
+    clip(&clippedSrcRect, src.width(), src.height(), &dstX, &dstY, width_, height_);
 
-    if (rect.width <= 0 || rect.height <= 0)
+    if (clippedSrcRect.width <= 0 || clippedSrcRect.height <= 0)
         return;
 
-    int srcY = rect.y;
-    int srcX = rect.x;
-    for (int i = 0; i < rect.height; ++i)
+    int srcY = clippedSrcRect.y;
+    int srcX = clippedSrcRect.x;
+    int rowSize = clippedSrcRect.width * PIXEL_SIZE;
+    for (int i = 0; i < clippedSrcRect.height; ++i)
     {
-        Pixel *       d = const_cast<Pixel *>(addressOf(dstX, dstY));
-        Pixel const * s = src.data(srcX, srcY);
-        memcpy(d, s, rect.width * PIXEL_SIZE);
+        std::byte *       d = reinterpret_cast<std::byte *>(data(dstX, dstY));
+        std::byte const * s = reinterpret_cast<std::byte const *>(src.data(srcX, srcY));
+        std::copy(s, s + rowSize, d);
         ++srcY;
         ++dstY;
     }
 }
 
-template <class Pixel>
-void Bitmap<Pixel>::clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * dstY, int dstW, int dstH)
+// Bitmap<Pixel>::clip adjusts the rects used to copy from an arbitrary region in a source bitmap to a location in a
+// destination bitmap.
+// 
+// Parameters:
+//  - a source rectangle(*srcRect) inside a source bitmap of size (srcW, srcH)
+//  - a destination placement (*dstX, *dstY) inside a destination bitmap of size (dstW, dstH)
+//
+// It mutates *srcRect, *dstX, and *dstY so a later copy only operates on valid pixels in the source bitmap.
+template<class Pixel>
+void Bitmap<Pixel>::clip(Rect * srcRect,
+                         int srcW,
+                         int srcH,
+                         int * dstX,
+                         int * dstY,
+                         int dstW,
+                         int dstH)
 {
-    assert(srcW >= 0);
-    assert(srcH >= 0);
-    assert(dstW >= 0);
-    assert(dstH >= 0);
-
     Rect rect = *srcRect;
     int  dx   = *dstX;
     int  dy   = *dstY;
 
-    // Clip to the source (0, 0, srcW, srcH)
+    // Clip the source rect to the source bitmap dimensions (0, 0, srcW, srcH)
 
     if (rect.x < 0)
     {
         rect.width += rect.x;
-        dx         -= rect.x;
+        dx         -= rect.x; // The origin of the source rect moved so the destination must move too
         rect.x      = 0;
     }
 
     if (rect.y < 0)
     {
         rect.height += rect.y;
-        dy          -= rect.y;
+        dy          -= rect.y; // The origin of the source rect moved so the destination must move too
         rect.y       = 0;
     }
 
-    if (rect.width > srcW - rect.x)
+    if (rect.x + rect.width > srcW)
         rect.width = srcW - rect.x;
 
-    if (rect.height > srcH - rect.y)
+    if (rect.y + rect.height > srcH)
         rect.height = srcH - rect.y;
 
-    // Clip to the destination (0, 0, dstW, dstH)
+    // Clip the translated source rect to the destination bitmap dimensions(0, 0, dstW, dstH)
+    // Ensure that the destination coordinates are non-negative, and adjust the source rect accordingly.
 
     if (dx < 0)
     {
@@ -404,10 +241,10 @@ void Bitmap<Pixel>::clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * d
         dy           = 0;
     }
 
-    if (rect.width > dstW - dx)
+    if (dx + rect.width > dstW)
         rect.width = dstW - dx;
 
-    if (rect.height > dstH - dy)
+    if (dy + rect.height > dstH)
         rect.height = dstH - dy;
 
     *srcRect = rect;
@@ -418,21 +255,14 @@ void Bitmap<Pixel>::clip(Rect * srcRect, int srcW, int srcH, int * dstX, int * d
 template <class Pixel>
 Pixel const * Bitmap<Pixel>::addressOf(int x, int y) const
 {
-    assert(!data_ || (x >= 0 && x < width_));
-    assert(!data_ || (y >= 0 && y < height_));
-
-    if (!data_)
+    if (data_.empty())
         return nullptr;
 
-    return reinterpret_cast<Pixel const *>(reinterpret_cast<char const *>(data_) + y * pitch_) + x;
-}
+    assert(x < width_);
+    assert(y < height_);
 
-template <class Pixel>
-Pixel * Bitmap<Pixel>::createCopy(Pixel const * data, size_t pitch, int height)
-{
-    Pixel * copy = reinterpret_cast<Pixel *>(new char[pitch * height]);
-    memcpy(copy, data, pitch * height);
-    return copy;
+    size_t offset = y * pitch_ + x * PIXEL_SIZE;
+    return reinterpret_cast<Pixel const *>(data_.data() + offset);
 }
 
 #endif // !defined(BITMAP_BITMAP_H)
