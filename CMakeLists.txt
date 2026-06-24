@@ -24,6 +24,8 @@ target_sources(${PROJECT_NAME}
             ${CMAKE_CURRENT_SOURCE_DIR}/include
         FILES
             include/Bitmap/Bitmap.h
+            include/Bitmap/BitmapView.h
+            include/Bitmap/detail/Clip.h
             include/Bitmap/Palette.h
             include/Bitmap/PalettizedBitmap.h
             include/Bitmap/Pixel.h

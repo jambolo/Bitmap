@@ -16,6 +16,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(BitmapTests
 	test-Bitmap.cpp
+	test-BitmapView.cpp
 	test-Palette.cpp
 	test-PalettizedBitmap.cpp
 	test-Pixel.cpp
