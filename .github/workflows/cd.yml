@@ -1,0 +1,64 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy-docs:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz ninja-build cmake
+
+      - name: Checkout Rect dependency
+        uses: actions/checkout@v7
+        with:
+          repository: jambolo/Rect
+          path: Rect
+
+      - name: Build and install Rect
+        run: |
+          cmake -S Rect -B build_rect -G Ninja -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install/Rect
+          cmake --build build_rect
+          cmake --install build_rect
+
+      - name: Configure CMake
+        run: cmake -B build -G Ninja -DBitmap_BUILD_DOCS=ON -DRect_DIR=${{ github.workspace }}/install/Rect/lib/cmake/Rect
+
+      - name: Build documentation
+        run: cmake --build build --target doxygen
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          # Upload Doxygen HTML output
+          path: './build/docs/html'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

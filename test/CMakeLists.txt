@@ -1,28 +1,34 @@
-cmake_minimum_required (VERSION 3.10)
+include(FetchContent)
 
-set(GTEST_ROOT "" CACHE PATH "Location of GTest")
-find_package(GTest REQUIRED)
+# Disable installation of GoogleTest
+set(INSTALL_GTEST OFF)
+
+FetchContent_Declare(
+	googletest
+	URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
+	DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+add_executable(BitmapTests
+	test-Bitmap.cpp
+	test-BitmapView.cpp
+	test-Palette.cpp
+	test-PalettizedBitmap.cpp
+	test-Pixel.cpp
+)
+
+target_link_libraries(BitmapTests
+	PRIVATE
+		Bitmap::Bitmap
+		GTest::gtest_main
+)
+
+target_compile_features(BitmapTests PRIVATE cxx_std_17)
+
 include(GoogleTest)
-
-add_definitions(
-    -DNOMINMAX
-    -DWIN32_LEAN_AND_MEAN
-    -DVC_EXTRALEAN
-    -D_CRT_SECURE_NO_WARNINGS
-    -D_SECURE_SCL=0
-    -D_SCL_SECURE_NO_WARNINGS
-)
-
-set(SOURCES
-    test-Bitmap.cpp
-)
-
-foreach(FILE ${SOURCES})
-    get_filename_component(TEST ${FILE} NAME_WE)
-    set(TEST_EXE "${PROJECT_NAME}_${TEST}")
-    add_executable(${TEST_EXE} ${FILE})
-    target_link_libraries(${TEST_EXE} PRIVATE ${PROJECT_NAME} GTest::GTest GTest::Main)
-    gtest_discover_tests(${TEST_EXE})
-    target_compile_features(${TEST_EXE} PRIVATE cxx_std_17)
-    set_target_properties(${TEST_EXE} PROPERTIES CXX_EXTENSIONS OFF)
-endforeach()
+gtest_discover_tests(BitmapTests)
