@@ -64,8 +64,11 @@ target_compile_definitions(${PROJECT_NAME}
 #########################################################################
 
 if(${PROJECT_NAME}_BUILD_DOCS AND PROJECT_IS_TOP_LEVEL)
-    find_package(Doxygen QUIET)
+    find_package(Doxygen QUIET OPTIONAL_COMPONENTS dot)
     if(Doxygen_FOUND)
+        if(NOT DEFINED DOXYGEN_OUTPUT_DIRECTORY)
+            set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/docs")
+        endif()
         configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
         doxygen_add_docs(doxygen
             COMMENT "Generating API documentation with Doxygen"

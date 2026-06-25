@@ -4,12 +4,20 @@
     {
       "name": "x64-Debug",
       "generator": "Ninja",
-      "binaryDir": "E:/build/Bitmap/out/build/${presetName}",
+      "binaryDir": "E:/build/Bitmap/build/${presetName}",
       "cacheVariables": {
         "Rect_DIR": "C:/Users/John/Projects/3rdParty/Rect/lib/cmake/Rect",
-        "CMAKE_INSTALL_PREFIX": "E:/build/Bitmap/out/install",
+        "CMAKE_INSTALL_PREFIX": "E:/build/Bitmap/install",
         "Bitmap_BUILD_DOCS": "ON",
-        "DOXYGEN_OUTPUT_DIRECTORY": "E:/build/Bitmap/out/doxygen"
+        "DOXYGEN_OUTPUT_DIRECTORY": "E:/build/Bitmap/doxygen"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "enableMicrosoftCodeAnalysis": true,
+          "enableClangTidyCodeAnalysis": true,
+          "clangTidyChecks": "clang-analyzer-*",
+          "clangTidyHeaderFilter": ".*Rect/.*"
+        }
       },
       "architecture": {
         "value": "x64",

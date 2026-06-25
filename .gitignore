@@ -10,6 +10,7 @@ cmake_install.cmake
 compile_commands.json
 CTestTestfile.cmake
 _deps/
+CMakePresets.json
 
 # Ninja generated files
 .ninja_deps

@@ -1,5 +1,8 @@
 # Bitmap
 
+[![CI](https://github.com/jambolo/Bitmap/actions/workflows/ci.yml/badge.svg)](https://github.com/jambolo/Bitmap/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jambolo/Bitmap/branch/master/graph/badge.svg)](https://codecov.io/gh/jambolo/Bitmap)
+
 A small C++17 bitmap utility library with strongly typed pixel formats, generic bitmap storage, and palette support.
 
 ## Features
