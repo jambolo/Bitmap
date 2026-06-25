@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(Bitmap VERSION 0.1.0 LANGUAGES CXX)
+project(Bitmap VERSION 1.0.0 LANGUAGES CXX)
 
 option(BUILD_SHARED_LIBS "Build libraries as DLLs" FALSE)
 option(${PROJECT_NAME}_BUILD_DOCS "Build API documentation with Doxygen" OFF)
